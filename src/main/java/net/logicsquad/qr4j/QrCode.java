@@ -21,7 +21,7 @@
  *   Software.
  */
 
-package io.nayuki.fastqrcodegen;
+package net.logicsquad.qr4j;
 
 import java.util.Arrays;
 import java.util.List;

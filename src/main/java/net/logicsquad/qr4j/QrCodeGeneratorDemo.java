@@ -24,7 +24,7 @@
  *   Software.
  */
 
-package io.nayuki.fastqrcodegen;
+package net.logicsquad.qr4j;
 
 import java.awt.image.BufferedImage;
 import java.io.File;

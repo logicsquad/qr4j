@@ -21,7 +21,7 @@
  *   Software.
  */
 
-package io.nayuki.fastqrcodegen;
+package net.logicsquad.qr4j;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -29,7 +29,8 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.Objects;
-import io.nayuki.fastqrcodegen.QrSegment.Mode;
+
+import net.logicsquad.qr4j.QrSegment.Mode;
 
 
 /**

@@ -21,7 +21,7 @@
  *   Software.
  */
 
-package io.nayuki.fastqrcodegen;
+package net.logicsquad.qr4j;
 
 
 // Stores the parts of a QR Code that depend only on the version number,
