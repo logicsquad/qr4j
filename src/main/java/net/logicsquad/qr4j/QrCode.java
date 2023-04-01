@@ -4,27 +4,36 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
-
 /**
- * A QR Code symbol, which is a type of two-dimension barcode.
- * Invented by Denso Wave and described in the ISO/IEC 18004 standard.
- * <p>Instances of this class represent an immutable square grid of dark and light cells.
- * The class provides static factory functions to create a QR Code from text or binary data.
- * The class covers the QR Code Model 2 specification, supporting all versions (sizes)
- * from 1 to 40, all 4 error correction levels, and 4 character encoding modes.</p>
- * <p>Ways to create a QR Code object:</p>
+ * <p>
+ * A QR Code symbol, which is a type of two-dimension barcode. Invented by Denso Wave and described in the
+ * ISO/IEC 18004 standard.
+ * </p>
+ * 
+ * <p>
+ * Instances of this class represent an immutable square grid of dark and light cells. The class provides
+ * static factory functions to create a QR Code from text or binary data. The class covers the QR Code Model 2
+ * specification, supporting all versions (sizes) from 1 to 40, all 4 error correction levels, and 4 character
+ * encoding modes.
+ * </p>
+ * 
+ * <p>
+ * Ways to create a QR Code object:
+ * </p>
  * <ul>
- *   <li><p>High level: Take the payload data and call {@link QrCode#encodeText(String,Ecc)}
- *     or {@link QrCode#encodeBinary(byte[],Ecc)}.</p></li>
- *   <li><p>Mid level: Custom-make the list of {@link QrSegment segments}
- *     and call {@link QrCode#encodeSegments(List,Ecc)} or
- *     {@link QrCode#encodeSegments(List,Ecc,int,int,int,boolean)}</p></li>
- *   <li><p>Low level: Custom-make the array of data codeword bytes (including segment headers and
- *     final padding, excluding error correction codewords), supply the appropriate version number,
- *     and call the {@link QrCode#QrCode(int,Ecc,byte[],int) constructor}.</p></li>
+ * <li>High level: Take the payload data and call {@link QrCode#encodeText(String,Ecc)} or
+ * {@link QrCode#encodeBinary(byte[],Ecc)}.</li>
+ * <li>Mid level: Custom-make the list of {@link QrSegment segments} and call
+ * {@link QrCode#encodeSegments(List,Ecc)} or {@link QrCode#encodeSegments(List,Ecc,int,int,int,boolean)}</li>
+ * <li>Low level: Custom-make the array of data codeword bytes (including segment headers and final padding,
+ * excluding error correction codewords), supply the appropriate version number, and call the
+ * {@link QrCode#QrCode(int,Ecc,byte[],int) constructor}.</li>
  * </ul>
- * <p>(Note that all ways require supplying the desired error correction level.)</p>
- * @see QrSegment
+ * <p>
+ * (Note that all ways require supplying the desired error correction level.)
+ * </p>
+ * 
+ * @author <a href="mailto:me@nayuki.io">Nayuki</a>
  */
 public final class QrCode {
 	

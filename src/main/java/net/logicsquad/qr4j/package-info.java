@@ -48,5 +48,7 @@
  *        (... paint qr.getModule(x, y) ...)
  *    }
  *}</pre>
+ *
+ * @author <a href="mailto:me@nayuki.io">Nayuki</a>
  */
 package net.logicsquad.qr4j;

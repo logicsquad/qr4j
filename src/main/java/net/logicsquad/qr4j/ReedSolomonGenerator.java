@@ -3,8 +3,11 @@ package net.logicsquad.qr4j;
 import java.util.Arrays;
 import java.util.Objects;
 
-
-// Computes Reed-Solomon error correction codewords for given data codewords.
+/**
+ * Computes Reed-Solomon error correction codewords for given data codewords.
+ * 
+ * @author <a href="mailto:me@nayuki.io">Nayuki</a>
+ */
 final class ReedSolomonGenerator {
 	
 	// Use this memoizer to get instances of this class.

@@ -3,8 +3,11 @@ package net.logicsquad.qr4j;
 import java.util.Arrays;
 import java.util.Objects;
 
-
-// An appendable sequence of bits (0s and 1s), mainly used by QrSegment.
+/**
+ * An appendable sequence of bits.
+ * 
+ * @author <a href="mailto:me@nayuki.io">Nayuki</a>
+ */
 final class BitBuffer {
 	
 	/*---- Fields ----*/

@@ -7,8 +7,13 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
-
-// A thread-safe cache based on soft references.
+/**
+ * A thread-safe cache based on soft references.
+ * 
+ * @param <T>
+ * @param <R>
+ * @author <a href="mailto:me@nayuki.io">Nayuki</a>
+ */
 final class Memoizer<T,R> {
 	
 	private final Function<T,R> function;

@@ -13,8 +13,10 @@ import javax.imageio.ImageIO;
 /**
  * Fast QR Code generator demo
  * 
- * Run this command-line program with no arguments. The program creates/overwrites a bunch of
- * PNG and SVG files in the current working directory to demonstrate the creation of QR Codes.
+ * Run this command-line program with no arguments. The program creates/overwrites a bunch of PNG and SVG
+ * files in the current working directory to demonstrate the creation of QR Codes.
+ * 
+ * @author <a href="mailto:me@nayuki.io">Nayuki</a>
  */
 public final class QrCodeGeneratorDemo {
 	

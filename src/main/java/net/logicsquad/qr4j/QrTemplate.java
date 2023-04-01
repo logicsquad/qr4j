@@ -1,8 +1,11 @@
 package net.logicsquad.qr4j;
 
-
-// Stores the parts of a QR Code that depend only on the version number,
-// and does not depend on the data or error correction level or mask.
+/**
+ * Stores the parts of a QR Code that depend only on the version number, and does not depend on the data or
+ * error correction level or mask.
+ * 
+ * @author <a href="mailto:me@nayuki.io">Nayuki</a>
+ */
 final class QrTemplate {
 	
 	// Use this memoizer to get instances of this class.

@@ -8,17 +8,24 @@ import java.util.Objects;
 
 
 /**
- * A segment of character/binary/control data in a QR Code symbol.
- * Instances of this class are immutable.
- * <p>The mid-level way to create a segment is to take the payload data and call a
- * static factory function such as {@link QrSegment#makeNumeric(String)}. The low-level
- * way to create a segment is to custom-make the bit buffer and call the {@link
- * QrSegment#QrSegment(Mode,int,int[],int) constructor} with appropriate values.</p>
- * <p>This segment class imposes no length restrictions, but QR Codes have restrictions.
- * Even in the most favorable conditions, a QR Code can only hold 7089 characters of data.
- * Any segment longer than this is meaningless for the purpose of generating QR Codes.
- * This class can represent kanji mode segments, but provides no help in encoding them
- * - see {@link QrSegmentAdvanced} for full kanji support.</p>
+ * <p>
+ * A segment of character/binary/control data in a QR Code symbol. Instances of this class are immutable.
+ * </p>
+ * 
+ * <p>
+ * The mid-level way to create a segment is to take the payload data and call a static factory function such
+ * as {@link QrSegment#makeNumeric(String)}. The low-level way to create a segment is to custom-make the bit
+ * buffer and call the {@link QrSegment#QrSegment(Mode,int,int[],int) constructor} with appropriate values.
+ * </p>
+ * 
+ * <p>
+ * This segment class imposes no length restrictions, but QR Codes have restrictions. Even in the most
+ * favorable conditions, a QR Code can only hold 7089 characters of data. Any segment longer than this is
+ * meaningless for the purpose of generating QR Codes. This class can represent kanji mode segments, but
+ * provides no help in encoding them - see {@link QrSegmentAdvanced} for full kanji support.
+ * </p>
+ * 
+ * @author <a href="mailto:me@nayuki.io">Nayuki</a>
  */
 public final class QrSegment {
 	

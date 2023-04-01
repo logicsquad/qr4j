@@ -11,10 +11,10 @@ import net.logicsquad.qr4j.QrSegment.Mode;
 
 
 /**
- * Splits text into optimal segments and encodes kanji segments.
- * Provides static functions only; not instantiable.
- * @see QrSegment
- * @see QrCode
+ * Splits text into optimal segments and encodes kanji segments. Provides static functions only; not
+ * instantiable.
+ * 
+ * @author <a href="mailto:me@nayuki.io">Nayuki</a>
  */
 public final class QrSegmentAdvanced {
 	
