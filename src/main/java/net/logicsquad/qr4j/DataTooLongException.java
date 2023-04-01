@@ -23,7 +23,12 @@ package net.logicsquad.qr4j;
  * @see QrSegmentAdvanced#makeSegmentsOptimally(String, QrCode.Ecc, int, int)
  */
 public class DataTooLongException extends IllegalArgumentException {
-	
+	/**
+	 * Serial version UID
+	 */
+	private static final long serialVersionUID = 1L;
+
+
 	public DataTooLongException() {}
 	
 	
