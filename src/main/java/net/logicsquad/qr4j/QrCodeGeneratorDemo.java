@@ -10,8 +10,6 @@ import java.util.List;
 import java.util.Objects;
 import javax.imageio.ImageIO;
 
-import net.logicsquad.qr4j.QrSegment.QrSegmentAdvanced;
-
 /**
  * Fast QR Code generator demo
  * 
@@ -117,7 +115,7 @@ public final class QrCodeGeneratorDemo {
 		qr = QrCode.encodeText(madoka, QrCode.Ecc.LOW);
 		writePng(toImage(qr, 9, 4, 0xFFFFE0, 0x303080), "madoka-utf8-QR.png");
 		
-		segs = Arrays.asList(QrSegmentAdvanced.makeKanji(madoka));
+		segs = Arrays.asList(QrSegment.Utility.makeKanji(madoka));
 		qr = QrCode.encodeSegments(segs, QrCode.Ecc.LOW);
 		writePng(toImage(qr, 9, 4, 0xE0F0FF, 0x404040), "madoka-kanji-QR.png");
 	}

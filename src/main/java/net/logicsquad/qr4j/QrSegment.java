@@ -22,7 +22,7 @@ import java.util.Objects;
  * This segment class imposes no length restrictions, but QR Codes have restrictions. Even in the most
  * favorable conditions, a QR Code can only hold 7089 characters of data. Any segment longer than this is
  * meaningless for the purpose of generating QR Codes. This class can represent kanji mode segments, but
- * provides no help in encoding them - see {@link QrSegmentAdvanced} for full kanji support.
+ * provides no help in encoding them - see {@link Utility} for full kanji support.
  * </p>
  * 
  * @author <a href="mailto:me@nayuki.io">Nayuki</a>
@@ -325,7 +325,7 @@ public final class QrSegment {
 	 * 
 	 * @author <a href="mailto:me@nayuki.io">Nayuki</a>
 	 */
-	public static final class QrSegmentAdvanced {
+	public static final class Utility {
 		
 		/*---- Optimal list of segments encoder ----*/
 		
@@ -706,7 +706,7 @@ public final class QrSegment {
 		
 		/*---- Miscellaneous ----*/
 		
-		private QrSegmentAdvanced() {}  // Not instantiable
+		private Utility() {}  // Not instantiable
 		
 	}
 	

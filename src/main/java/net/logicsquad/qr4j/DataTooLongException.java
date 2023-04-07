@@ -13,8 +13,8 @@ package net.logicsquad.qr4j;
  * than {@link QrCode#MAX_VERSION}. (This advice does not apply to the other factory functions because they
  * search all versions up to {@code QrCode.MAX_VERSION}.)</li>
  * <li>Split the text data into better or optimal segments in order to reduce the number of bits required.
- * (See {@link QrSegmentAdvanced#makeSegmentsOptimally(String,QrCode.Ecc,int,int)
- * QrSegmentAdvanced.makeSegmentsOptimally()}.)</li>
+ * (See {@link QrSegment.Utility#makeSegmentsOptimally(String, net.logicsquad.qr4j.QrCode.Ecc, int, int)
+ * Utility.makeSegmentsOptimally()}.)</li>
  * <li>Change the text or binary data to be shorter.</li>
  * <li>Change the text to fit the character set of a particular segment mode (e.g. alphanumeric).</li>
  * <li>Propagate the error upward to the caller/user.</li>
