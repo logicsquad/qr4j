@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Objects;
 import javax.imageio.ImageIO;
 
+import net.logicsquad.qr4j.QrSegment.QrSegmentAdvanced;
+
 /**
  * Fast QR Code generator demo
  * 
