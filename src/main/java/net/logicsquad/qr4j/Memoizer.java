@@ -23,7 +23,7 @@ final class Memoizer<T, R> {
 	/**
 	 * Cache of return values
 	 */
-	Map<T, SoftReference<R>> cache = new ConcurrentHashMap<>();
+	private Map<T, SoftReference<R>> cache = new ConcurrentHashMap<>();
 
 	/**
 	 * Set of index values for which a result is being computed

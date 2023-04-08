@@ -31,7 +31,7 @@ public final class QrSegment {
 	/**
 	 * Characters considered "alphanumeric"
 	 */
-	static final int[] ALPHANUMERIC_MAP;
+	private static final int[] ALPHANUMERIC_MAP;
 	
 	static {
 		final String ALPHANUMERIC_CHARSET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:";

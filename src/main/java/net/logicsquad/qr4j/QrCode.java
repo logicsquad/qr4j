@@ -637,7 +637,7 @@ public final class QrCode {
 	 * @param i
 	 * @return
 	 */
-	static int getBit(int x, int i) {
+	private static int getBit(int x, int i) {
 		return (x >>> i) & 1;
 	}
 
