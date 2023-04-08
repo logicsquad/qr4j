@@ -143,8 +143,6 @@ public class QrCodeTest {
 	
 	// Helper function to reduce code duplication.
 	private static void writePng(BufferedImage img, String filepath) throws IOException {
-		File output = new File(filepath);
-		System.out.println("QrCodeTest.writePng: output.getAbsolutePath() = " + output.getAbsolutePath());
 		ImageIO.write(img, "png", new File(filepath));
 	}
 }
