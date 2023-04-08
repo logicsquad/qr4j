@@ -1,3 +1,6 @@
+![](https://github.com/logicsquad/qr4j/workflows/build/badge.svg)
+[![License](https://img.shields.io/badge/License-BSD-blue.svg)](https://opensource.org/license/bsd-2-clause/)
+
 QR4J
 ====
 
