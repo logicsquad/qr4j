@@ -9,6 +9,8 @@ import java.util.Arrays;
 import java.util.List;
 import javax.imageio.ImageIO;
 
+import org.junit.jupiter.api.Test;
+
 /**
  * Fast QR Code generator demo
  * 
@@ -17,22 +19,10 @@ import javax.imageio.ImageIO;
  * 
  * @author <a href="mailto:me@nayuki.io">Nayuki</a>
  */
-public final class QrCodeGeneratorDemo {
-	
-	// The main application program.
-	public static void main(String[] args) throws IOException {
-		doBasicDemo();
-		doVarietyDemo();
-		doSegmentDemo();
-		doMaskDemo();
-	}
-	
-	
-	
-	/*---- Demo suite ----*/
-	
+public class QrCodeTest {
 	// Creates a single QR Code, then writes it to a PNG file and an SVG file.
-	private static void doBasicDemo() throws IOException {
+	@Test
+	public void doBasicDemo() throws IOException {
 		String text = "Hello, world!";          // User-supplied Unicode text
 		QrCode.Ecc errCorLvl = QrCode.Ecc.LOW;  // Error correction level
 		
@@ -48,9 +38,9 @@ public final class QrCodeGeneratorDemo {
 			svg.getBytes(StandardCharsets.UTF_8));
 	}
 	
-	
 	// Creates a variety of QR Codes that exercise different features of the library, and writes each one to file.
-	private static void doVarietyDemo() throws IOException {
+	@Test
+	public void doVarietyDemo() throws IOException {
 		QrCode qr;
 		
 		// Numeric mode encoding (3.33 bits per digit)
@@ -79,7 +69,8 @@ public final class QrCodeGeneratorDemo {
 	
 	
 	// Creates QR Codes with manually specified segments for better compactness.
-	private static void doSegmentDemo() throws IOException {
+	@Test
+	public void doSegmentDemo() throws IOException {
 		QrCode qr;
 		List<QrSegment> segs;
 		
@@ -121,7 +112,8 @@ public final class QrCodeGeneratorDemo {
 	
 	
 	// Creates QR Codes with the same size and contents but different mask patterns.
-	private static void doMaskDemo() throws IOException {
+	@Test
+	public void doMaskDemo() throws IOException {
 		QrCode qr;
 		List<QrSegment> segs;
 		
@@ -151,6 +143,8 @@ public final class QrCodeGeneratorDemo {
 	
 	// Helper function to reduce code duplication.
 	private static void writePng(BufferedImage img, String filepath) throws IOException {
+		File output = new File(filepath);
+		System.out.println("QrCodeTest.writePng: output.getAbsolutePath() = " + output.getAbsolutePath());
 		ImageIO.write(img, "png", new File(filepath));
 	}
 }

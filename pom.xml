@@ -22,6 +22,18 @@
     </license>
   </licenses>
 
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.0.0</version>
+        <configuration>
+          <workingDirectory>${project.build.directory}/test-run</workingDirectory>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
   <developers>
     <developer>
       <id>paulh</id>
@@ -62,6 +74,11 @@
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-engine</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
