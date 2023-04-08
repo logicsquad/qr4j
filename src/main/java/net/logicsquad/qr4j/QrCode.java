@@ -166,7 +166,7 @@ public final class QrCode {
 		errorCorrectionLevel = Objects.requireNonNull(ecl);
 		Objects.requireNonNull(dataCodewords);
 		
-		QrTemplate tpl = QrTemplate.MEMOIZER.get(ver);
+		Template tpl = Template.MEMOIZER.get(ver);
 		modules = tpl.template.clone();
 		
 		// Compute ECC, draw modules, do masking
@@ -404,7 +404,7 @@ public final class QrCode {
 		// Calculate parameter numbers
 		int numBlocks = NUM_ERROR_CORRECTION_BLOCKS[errorCorrectionLevel.ordinal()][version];
 		int blockEccLen = ECC_CODEWORDS_PER_BLOCK  [errorCorrectionLevel.ordinal()][version];
-		int rawCodewords = QrTemplate.getNumRawDataModules(version) / 8;
+		int rawCodewords = Template.getNumRawDataModules(version) / 8;
 		int numShortBlocks = numBlocks - rawCodewords % numBlocks;
 		int shortBlockDataLen = rawCodewords / numBlocks - blockEccLen;
 		
@@ -578,7 +578,7 @@ public final class QrCode {
 	 * @return number of data codewords
 	 */
 	static int getNumDataCodewords(int ver, Ecc ecl) {
-		return QrTemplate.getNumRawDataModules(ver) / 8
+		return Template.getNumRawDataModules(ver) / 8
 			- ECC_CODEWORDS_PER_BLOCK    [ecl.ordinal()][ver]
 			* NUM_ERROR_CORRECTION_BLOCKS[ecl.ordinal()][ver];
 	}
@@ -733,11 +733,11 @@ public final class QrCode {
 	 * 
 	 * @author <a href="mailto:me@nayuki.io">Nayuki</a>
 	 */
-	private static final class QrTemplate {
+	private static final class Template {
 		/**
 		 * {@link Memoizer} holding instances of this class
 		 */
-		public static final Memoizer<Integer, QrTemplate> MEMOIZER = new Memoizer<>(QrTemplate::new);		
+		public static final Memoizer<Integer, Template> MEMOIZER = new Memoizer<>(Template::new);		
 
 		/**
 		 * Version number (in the range {@code [1, 40]})
@@ -762,7 +762,7 @@ public final class QrCode {
 		 * 
 		 * @param ver QR Code version
 		 */
-		private QrTemplate(int ver) {
+		private Template(int ver) {
 			if (ver < QrCode.MIN_VERSION || ver > QrCode.MAX_VERSION)
 				throw new IllegalArgumentException("Version out of range");
 			version = ver;
