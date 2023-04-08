@@ -28,12 +28,20 @@ public class DataTooLongException extends IllegalArgumentException {
 	 */
 	private static final long serialVersionUID = 1L;
 
+	/**
+	 * Constructor
+	 */
+	public DataTooLongException() {
+		return;
+	}
 
-	public DataTooLongException() {}
-	
-	
+	/**
+	 * Constructor taking a message
+	 * 
+	 * @param msg a message
+	 */
 	public DataTooLongException(String msg) {
 		super(msg);
+		return;
 	}
-	
 }

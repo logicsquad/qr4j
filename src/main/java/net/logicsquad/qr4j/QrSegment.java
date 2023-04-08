@@ -28,17 +28,117 @@ import java.util.Objects;
  * @author <a href="mailto:me@nayuki.io">Nayuki</a>
  */
 public final class QrSegment {
-	
-	/*---- Static factory functions (mid level) ----*/
-	
 	/**
-	 * Returns a segment representing the specified binary data
-	 * encoded in byte mode. All input byte arrays are acceptable.
-	 * <p>Any text string can be converted to UTF-8 bytes ({@code
-	 * s.getBytes(StandardCharsets.UTF_8)}) and encoded as a byte mode segment.</p>
+	 * Characters considered "alphanumeric"
+	 */
+	static final int[] ALPHANUMERIC_MAP;
+	
+	static {
+		final String ALPHANUMERIC_CHARSET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:";
+		int maxCh = -1;
+		for (int i = 0; i < ALPHANUMERIC_CHARSET.length(); i++)
+			maxCh = Math.max(ALPHANUMERIC_CHARSET.charAt(i), maxCh);
+		ALPHANUMERIC_MAP = new int[maxCh + 1];
+		Arrays.fill(ALPHANUMERIC_MAP, -1);
+		for (int i = 0; i < ALPHANUMERIC_CHARSET.length(); i++)
+			ALPHANUMERIC_MAP[ALPHANUMERIC_CHARSET.charAt(i)] = i;
+	}
+
+	/**
+	 * {@link Mode} for this segment
+	 */
+	public final Mode mode;
+
+	/**
+	 * The length of this segment's unencoded data. Measured in characters for
+	 * numeric/alphanumeric/kanji mode, bytes for byte mode, and 0 for ECI mode.
+	 * Always zero or positive. Not the same as the data's bit length.
+	 */
+	public final int numChars;
+
+	/**
+	 * Data bits in this segment
+	 */
+	final int[] data;
+
+	/**
+	 * Number of bits in this segment (requires {@code 0 <= bitLength <= data.length * 32})
+	 */
+	final int bitLength;
+
+	/**
+	 * Constructs a QR Code segment. The character count ({@code numCh}) must agree with the mode and the bit
+	 * buffer length, but the constraint isn't checked. The specified bit buffer is cloned and stored.
+	 * 
+	 * @param md     the mode (not {@code null})
+	 * @param numCh  the data length in characters or bytes, which is non-negative
+	 * @param data   the data bits (not {@code null})
+	 * @param bitLen the number of valid prefix bits in the data array
+	 * @throws NullPointerException     if the mode or data is {@code null}
+	 * @throws IllegalArgumentException if the character count is negative
+	 */
+	public QrSegment(Mode md, int numCh, int[] data, int bitLen) {
+		mode = Objects.requireNonNull(md);
+		this.data = Objects.requireNonNull(data);
+		if (numCh < 0 || bitLen < 0 || bitLen > data.length * 32L)
+			throw new IllegalArgumentException("Invalid value");
+		numChars = numCh;
+		bitLength = bitLen;
+	}
+
+	/**
+	 * Describes how a segment's data bits are interpreted.
+	 */
+	public enum Mode {
+		NUMERIC(0x1, 10, 12, 14), ALPHANUMERIC(0x2, 9, 11, 13), BYTE(0x4, 8, 16, 16), KANJI(0x8, 8, 10, 12), ECI(0x7, 0, 0, 0);
+
+		/**
+		 * Indicator bits, which is a {@code uint4} value (range 0 to 15)
+		 */
+		final int modeBits;
+
+		/**
+		 * Number of character count bits for three different version ranges
+		 */
+		private final int[] numBitsCharCount;
+
+		/**
+		 * Constructor
+		 * 
+		 * @param mode   mode
+		 * @param ccbits character count bits
+		 */
+		private Mode(int mode, int... ccbits) {
+			modeBits = mode;
+			numBitsCharCount = ccbits;
+		}
+
+		/**
+		 * Returns the bit width of the character count field for a segment in this mode in a QR Code at the given
+		 * version number. The result is in the range {@code [0, 16]}.
+		 * 
+		 * @param ver version
+		 * @return number of character count bits
+		 */
+		int numCharCountBits(int ver) {
+			assert QrCode.MIN_VERSION <= ver && ver <= QrCode.MAX_VERSION;
+			return numBitsCharCount[(ver + 7) / 17];
+		}
+	}
+
+	/**
+	 * <p>
+	 * Returns a segment representing the specified binary data encoded in byte mode. All input byte arrays are
+	 * acceptable.
+	 * </p>
+	 * <p>
+	 * Any text string can be converted to UTF-8 bytes ({@code
+	 * s.getBytes(StandardCharsets.UTF_8)}) and encoded as a byte mode segment.
+	 * </p>
+	 * 
 	 * @param data the binary data (not {@code null})
 	 * @return a segment (not {@code null}) containing the data
-	 * @throws NullPointerException if the array is {@code null}
+	 * @throws NullPointerException if {@code data} is {@code null}
 	 */
 	public static QrSegment makeBytes(byte[] data) {
 		Objects.requireNonNull(data);
@@ -49,14 +149,14 @@ public final class QrSegment {
 			bits[i >>> 2] |= (data[i] & 0xFF) << (~i << 3);
 		return new QrSegment(Mode.BYTE, data.length, bits, data.length * 8);
 	}
-	
-	
+
 	/**
 	 * Returns a segment representing the specified string of decimal digits encoded in numeric mode.
+	 * 
 	 * @param digits the text (not {@code null}), with only digits from 0 to 9 allowed
 	 * @return a segment (not {@code null}) containing the text
-	 * @throws NullPointerException if the string is {@code null}
-	 * @throws IllegalArgumentException if the string contains non-digit characters
+	 * @throws NullPointerException     if {@code digits} is {@code null}
+	 * @throws IllegalArgumentException if {@code digits} contains non-digit characters
 	 */
 	public static QrSegment makeNumeric(String digits) {
 		Objects.requireNonNull(digits);
@@ -79,16 +179,16 @@ public final class QrSegment {
 			bb.appendBits(accumData, accumCount * 3 + 1);
 		return new QrSegment(Mode.NUMERIC, digits.length(), bb.data, bb.bitLength);
 	}
-	
-	
+
 	/**
-	 * Returns a segment representing the specified text string encoded in alphanumeric mode.
-	 * The characters allowed are: 0 to 9, A to Z (uppercase only), space,
-	 * dollar, percent, asterisk, plus, hyphen, period, slash, colon.
+	 * Returns a segment representing the specified text string encoded in alphanumeric mode. The characters
+	 * allowed are: 0 to 9, A to Z (uppercase only), space, dollar, percent, asterisk, plus, hyphen, period,
+	 * slash, colon.
+	 * 
 	 * @param text the text (not {@code null}), with only certain characters allowed
 	 * @return a segment (not {@code null}) containing the text
-	 * @throws NullPointerException if the string is {@code null}
-	 * @throws IllegalArgumentException if the string contains non-encodable characters
+	 * @throws NullPointerException     if {@code text} is {@code null}
+	 * @throws IllegalArgumentException if {@code text} contains non-encodable characters
 	 */
 	public static QrSegment makeAlphanumeric(String text) {
 		Objects.requireNonNull(text);
@@ -112,13 +212,13 @@ public final class QrSegment {
 		return new QrSegment(Mode.ALPHANUMERIC, text.length(), bb.data, bb.bitLength);
 	}
 	
-	
 	/**
-	 * Returns a list of zero or more segments to represent the specified Unicode text string.
-	 * The result may use various segment modes and switch modes to optimize the length of the bit stream.
+	 * Returns a list of zero or more segments to represent the specified Unicode text string. The result may use
+	 * various segment modes and switch modes to optimize the length of the bit stream.
+	 * 
 	 * @param text the text to be encoded, which can be any Unicode string
 	 * @return a new mutable list (not {@code null}) of segments (not {@code null}) containing the text
-	 * @throws NullPointerException if the text is {@code null}
+	 * @throws NullPointerException if {@code text} is {@code null}
 	 */
 	public static List<QrSegment> makeSegments(String text) {
 		Objects.requireNonNull(text);
@@ -134,11 +234,11 @@ public final class QrSegment {
 			result.add(makeBytes(text.getBytes(StandardCharsets.UTF_8)));
 		return result;
 	}
-	
-	
+
 	/**
-	 * Returns a segment representing an Extended Channel Interpretation
-	 * (ECI) designator with the specified assignment value.
+	 * Returns a segment representing an Extended Channel Interpretation (ECI) designator with the specified
+	 * assignment value.
+	 * 
 	 * @param assignVal the ECI assignment number (see the AIM ECI specification)
 	 * @return a segment (not {@code null}) containing the data
 	 * @throws IllegalArgumentException if the value is outside the range [0, 10<sup>6</sup>)
@@ -159,14 +259,14 @@ public final class QrSegment {
 			throw new IllegalArgumentException("ECI assignment value out of range");
 		return new QrSegment(Mode.ECI, 0, bb.data, bb.bitLength);
 	}
-	
-	
+
 	/**
-	 * Tests whether the specified string can be encoded as a segment in numeric mode.
-	 * A string is encodable iff each character is in the range 0 to 9.
+	 * Tests whether the specified string can be encoded as a segment in numeric mode. A string is encodable iff
+	 * each character is in the range 0 to 9.
+	 * 
 	 * @param text the string to test for encodability (not {@code null})
 	 * @return {@code true} iff each character is in the range 0 to 9.
-	 * @throws NullPointerException if the string is {@code null}
+	 * @throws NullPointerException if {@code text} is {@code null}
 	 * @see #makeNumeric(String)
 	 */
 	public static boolean isNumeric(String text) {
@@ -177,15 +277,15 @@ public final class QrSegment {
 		}
 		return true;
 	}
-	
-	
+
 	/**
-	 * Tests whether the specified string can be encoded as a segment in alphanumeric mode.
-	 * A string is encodable iff each character is in the following set: 0 to 9, A to Z
-	 * (uppercase only), space, dollar, percent, asterisk, plus, hyphen, period, slash, colon.
+	 * Tests whether the specified string can be encoded as a segment in alphanumeric mode. A string is encodable
+	 * iff each character is in the following set: 0 to 9, A to Z (uppercase only), space, dollar, percent,
+	 * asterisk, plus, hyphen, period, slash, colon.
+	 * 
 	 * @param text the string to test for encodability (not {@code null})
 	 * @return {@code true} iff each character is in the alphanumeric mode character set
-	 * @throws NullPointerException if the string is {@code null}
+	 * @throws NullPointerException if {@code text} is {@code null}
 	 * @see #makeAlphanumeric(String)
 	 */
 	public static boolean isAlphanumeric(String text) {
@@ -196,52 +296,16 @@ public final class QrSegment {
 		}
 		return true;
 	}
-	
-	
-	
-	/*---- Instance fields ----*/
-	
-	/** The mode indicator of this segment. Not {@code null}. */
-	public final Mode mode;
-	
-	/** The length of this segment's unencoded data. Measured in characters for
-	 * numeric/alphanumeric/kanji mode, bytes for byte mode, and 0 for ECI mode.
-	 * Always zero or positive. Not the same as the data's bit length. */
-	public final int numChars;
-	
-	// The data bits of this segment. Not null.
-	final int[] data;
-	
-	// Requires 0 <= bitLength <= data.length * 32.
-	final int bitLength;
-	
-	
-	/*---- Constructor (low level) ----*/
-	
+
 	/**
-	 * Constructs a QR Code segment with the specified attributes and data.
-	 * The character count (numCh) must agree with the mode and the bit buffer length,
-	 * but the constraint isn't checked. The specified bit buffer is cloned and stored.
-	 * @param md the mode (not {@code null})
-	 * @param numCh the data length in characters or bytes, which is non-negative
-	 * @param data the data bits (not {@code null})
-	 * @param bitLen the number of valid prefix bits in the data array
-	 * @throws NullPointerException if the mode or data is {@code null}
-	 * @throws IllegalArgumentException if the character count is negative
+	 * Calculates the number of bits needed to encode the given segments at the given version. Returns a
+	 * non-negative number if successful. Otherwise returns -1 if a segment has too many characters to fit its
+	 * length field, or the total bits exceeds {@code Integer.MAX_VALUE}.
+	 * 
+	 * @param segs    list of {@link QrSegment}s
+	 * @param version version
+	 * @return number of bits needed, or -1 if any segment is too long
 	 */
-	public QrSegment(Mode md, int numCh, int[] data, int bitLen) {
-		mode = Objects.requireNonNull(md);
-		this.data = Objects.requireNonNull(data);
-		if (numCh < 0 || bitLen < 0 || bitLen > data.length * 32L)
-			throw new IllegalArgumentException("Invalid value");
-		numChars = numCh;
-		bitLength = bitLen;
-	}
-	
-	
-	// Calculates the number of bits needed to encode the given segments at the given version.
-	// Returns a non-negative number if successful. Otherwise returns -1 if a segment has too
-	// many characters to fit its length field, or the total bits exceeds Integer.MAX_VALUE.
 	static int getTotalBits(List<QrSegment> segs, int version) {
 		Objects.requireNonNull(segs);
 		long result = 0;
@@ -256,96 +320,40 @@ public final class QrSegment {
 		}
 		return (int)result;
 	}
-	
-	
-	/*---- Constants ----*/
-	
-	static final int[] ALPHANUMERIC_MAP;
-	
-	static {
-		final String ALPHANUMERIC_CHARSET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:";
-		int maxCh = -1;
-		for (int i = 0; i < ALPHANUMERIC_CHARSET.length(); i++)
-			maxCh = Math.max(ALPHANUMERIC_CHARSET.charAt(i), maxCh);
-		ALPHANUMERIC_MAP = new int[maxCh + 1];
-		Arrays.fill(ALPHANUMERIC_MAP, -1);
-		for (int i = 0; i < ALPHANUMERIC_CHARSET.length(); i++)
-			ALPHANUMERIC_MAP[ALPHANUMERIC_CHARSET.charAt(i)] = i;
-	}
-	
-	
-	
-	/*---- Public helper enumeration ----*/
-	
-	/**
-	 * Describes how a segment's data bits are interpreted.
-	 */
-	public enum Mode {
-		
-		/*-- Constants --*/
-		
-		NUMERIC     (0x1, 10, 12, 14),
-		ALPHANUMERIC(0x2,  9, 11, 13),
-		BYTE        (0x4,  8, 16, 16),
-		KANJI       (0x8,  8, 10, 12),
-		ECI         (0x7,  0,  0,  0);
-		
-		
-		/*-- Fields --*/
-		
-		// The mode indicator bits, which is a uint4 value (range 0 to 15).
-		final int modeBits;
-		
-		// Number of character count bits for three different version ranges.
-		private final int[] numBitsCharCount;
-		
-		
-		/*-- Constructor --*/
-		
-		private Mode(int mode, int... ccbits) {
-			modeBits = mode;
-			numBitsCharCount = ccbits;
-		}
-		
-		
-		/*-- Method --*/
-		
-		// Returns the bit width of the character count field for a segment in this mode
-		// in a QR Code at the given version number. The result is in the range [0, 16].
-		int numCharCountBits(int ver) {
-			assert QrCode.MIN_VERSION <= ver && ver <= QrCode.MAX_VERSION;
-			return numBitsCharCount[(ver + 7) / 17];
-		}
-		
-	}
 
 	/**
-	 * Splits text into optimal segments and encodes kanji segments. Provides static functions only; not
-	 * instantiable.
-	 * 
-	 * @author <a href="mailto:me@nayuki.io">Nayuki</a>
+	 * Provides additional utility methods for {@link QrSegment}s.
 	 */
 	public static final class Utility {
-		
-		/*---- Optimal list of segments encoder ----*/
-		
 		/**
-		 * Returns a list of zero or more segments to represent the specified Unicode text string.
-		 * The resulting list optimally minimizes the total encoded bit length, subjected to the constraints
-		 * in the specified {error correction level, minimum version number, maximum version number}.
-		 * <p>This function can utilize all four text encoding modes: numeric, alphanumeric, byte (UTF-8),
-		 * and kanji. This can be considered as a sophisticated but slower replacement for {@link
-		 * QrSegment#makeSegments(String)}. This requires more input parameters because it searches a
-		 * range of versions, like {@link QrCode#encodeSegments(List,QrCode.Ecc,int,int,int,boolean)}.</p>
-		 * @param text the text to be encoded (not {@code null}), which can be any Unicode string
-		 * @param ecl the error correction level to use (not {@code null})
+		 * Private constructor for non-instantiability
+		 */
+		private Utility() {
+			throw new AssertionError();
+		}
+
+		/**
+		 * <p>
+		 * Returns a list of zero or more segments to represent the specified Unicode text string. The resulting list
+		 * optimally minimizes the total encoded bit length, subjected to the constraints in the specified {error
+		 * correction level, minimum version number, maximum version number}.
+		 * </p>
+		 * <p>
+		 * This method can utilize all four text encoding modes: numeric, alphanumeric, byte (UTF-8), and kanji. This
+		 * can be considered as a sophisticated but slower replacement for {@link QrSegment#makeSegments(String)}.
+		 * This requires more input parameters because it searches a range of versions, like
+		 * {@link QrCode#encodeSegments(List,QrCode.Ecc,int,int,int,boolean)}.
+		 * </p>
+		 * 
+		 * @param text       the text to be encoded (not {@code null}), which can be any Unicode string
+		 * @param ecl        the error correction level to use (not {@code null})
 		 * @param minVersion the minimum allowed version of the QR Code (at least 1)
 		 * @param maxVersion the maximum allowed version of the QR Code (at most 40)
-		 * @return a new mutable list (not {@code null}) of segments (not {@code null})
-		 * containing the text, minimizing the bit length with respect to the constraints
-		 * @throws NullPointerException if the text or error correction level is {@code null}
+		 * @return a new mutable list (not {@code null}) of segments (not {@code null}) containing the text,
+		 *         minimizing the bit length with respect to the constraints
+		 * @throws NullPointerException     if {@code text} or {@code ecl} is {@code null}
 		 * @throws IllegalArgumentException if 1 &#x2264; minVersion &#x2264; maxVersion &#x2264; 40 is violated
-		 * @throws DataTooLongException if the text fails to fit in the maxVersion QR Code at the ECL
+		 * @throws DataTooLongException     if {@code text} fails to fit in the maxVersion QR Code at the ECL
 		 */
 		public static List<QrSegment> makeSegmentsOptimally(String text, QrCode.Ecc ecl, int minVersion, int maxVersion) {
 			// Check arguments
@@ -375,18 +383,29 @@ public final class QrSegment {
 				}
 			}
 		}
-		
-		
-		// Returns a new list of segments that is optimal for the given text at the given version number.
+
+		/**
+		 * Returns a list of {@link QrSegment}s that is optimal for the given text at the given version number.
+		 * 
+		 * @param codePoints array of codepoint values
+		 * @param version    version
+		 * @return list of segments
+		 */
 		private static List<QrSegment> makeSegmentsOptimally(int[] codePoints, int version) {
 			if (codePoints.length == 0)
 				return new ArrayList<>();
 			Mode[] charModes = computeCharacterModes(codePoints, version);
 			return splitIntoSegments(codePoints, charModes);
 		}
-		
-		
-		// Returns a new array representing the optimal mode per code point based on the given text and version.
+
+		/**
+		 * Returns an array of {@link Mode}s representing the optimal mode per code point based on the given text and
+		 * version.
+		 * 
+		 * @param codePoints array of codepoint values
+		 * @param version    version
+		 * @return optimal modes
+		 */
 		private static Mode[] computeCharacterModes(int[] codePoints, int version) {
 			if (codePoints.length == 0)
 				throw new IllegalArgumentException();
@@ -466,10 +485,15 @@ public final class QrSegment {
 			}
 			return result;
 		}
-		
-		
-		// Returns a new list of segments based on the given text and modes, such that
-		// consecutive code points in the same mode are put into the same segment.
+
+		/**
+		 * Returns a list of {@link QrSegment}s based on the given text and modes, such that consecutive code points
+		 * in the same mode are put into the same segment.
+		 * 
+		 * @param codePoints array of codepoint values
+		 * @param charModes  array of {@link Mode}s
+		 * @return list of segments
+		 */
 		private static List<QrSegment> splitIntoSegments(int[] codePoints, Mode[] charModes) {
 			if (codePoints.length == 0)
 				throw new IllegalArgumentException();
@@ -498,10 +522,14 @@ public final class QrSegment {
 				start = i;
 			}
 		}
-		
-		
-		// Returns a new array of Unicode code points (effectively
-		// UTF-32 / UCS-4) representing the given UTF-16 string.
+
+		/**
+		 * Returns a new array of Unicode code points (effectively UTF-32 / UCS-4) representing the given UTF-16
+		 * string.
+		 * 
+		 * @param s a string
+		 * @return array of codepoints
+		 */
 		private static int[] toCodePoints(String s) {
 			int[] result = s.codePoints().toArray();
 			for (int c : result) {
@@ -510,9 +538,13 @@ public final class QrSegment {
 			}
 			return result;
 		}
-		
-		
-		// Returns the number of UTF-8 bytes needed to encode the given Unicode code point.
+
+		/**
+		 * Returns the number of UTF-8 bytes needed to encode the given Unicode code point.
+		 * 
+		 * @param cp a codepoint
+		 * @return number of bytes required for encoding
+		 */
 		private static int countUtf8Bytes(int cp) {
 			if      (cp <        0) throw new IllegalArgumentException("Invalid code point");
 			else if (cp <     0x80) return 1;
@@ -521,21 +553,17 @@ public final class QrSegment {
 			else if (cp < 0x110000) return 4;
 			else                    throw new IllegalArgumentException("Invalid code point");
 		}
-		
-		
-		
-		/*---- Kanji mode segment encoder ----*/
-		
+
 		/**
-		 * Returns a segment representing the specified text string encoded in kanji mode.
-		 * Broadly speaking, the set of encodable characters are {kanji used in Japan,
-		 * hiragana, katakana, East Asian punctuation, full-width ASCII, Greek, Cyrillic}.
-		 * Examples of non-encodable characters include {ordinary ASCII, half-width katakana,
+		 * Returns a segment representing the specified text string encoded in kanji mode. Broadly speaking, the set
+		 * of encodable characters are {kanji used in Japan, hiragana, katakana, East Asian punctuation, full-width
+		 * ASCII, Greek, Cyrillic}. Examples of non-encodable characters include {ordinary ASCII, half-width katakana,
 		 * more extensive Chinese hanzi}.
+		 * 
 		 * @param text the text (not {@code null}), with only certain characters allowed
 		 * @return a segment (not {@code null}) containing the text
-		 * @throws NullPointerException if the string is {@code null}
-		 * @throws IllegalArgumentException if the string contains non-encodable characters
+		 * @throws NullPointerException     if {@code text} is {@code null}
+		 * @throws IllegalArgumentException if {@code text} contains non-encodable characters
 		 * @see #isEncodableAsKanji(String)
 		 */
 		public static QrSegment makeKanji(String text) {
@@ -549,17 +577,16 @@ public final class QrSegment {
 			});
 			return new QrSegment(Mode.KANJI, text.length(), bb.data, bb.bitLength);
 		}
-		
-		
+
 		/**
-		 * Tests whether the specified string can be encoded as a segment in kanji mode.
-		 * Broadly speaking, the set of encodable characters are {kanji used in Japan,
-		 * hiragana, katakana, East Asian punctuation, full-width ASCII, Greek, Cyrillic}.
-		 * Examples of non-encodable characters include {ordinary ASCII, half-width katakana,
+		 * Tests whether the specified string can be encoded as a segment in kanji mode. Broadly speaking, the set of
+		 * encodable characters are {kanji used in Japan, hiragana, katakana, East Asian punctuation, full-width
+		 * ASCII, Greek, Cyrillic}. Examples of non-encodable characters include {ordinary ASCII, half-width katakana,
 		 * more extensive Chinese hanzi}.
+		 * 
 		 * @param text the string to test for encodability (not {@code null})
 		 * @return {@code true} iff each character is in the kanji mode character set
-		 * @throws NullPointerException if the string is {@code null}
+		 * @throws NullPointerException if {@code text} is {@code null}
 		 * @see #makeKanji(String)
 		 */
 		public static boolean isEncodableAsKanji(String text) {
@@ -568,13 +595,20 @@ public final class QrSegment {
 				c -> isKanji((char)c));
 		}
 		
-		
+		/**
+		 * Does {@code c} represent a Kanji codepoint?
+		 * 
+		 * @param c a codepoint
+		 * @return {@code true} if {@code c} represents a Kanji codepoint
+		 */
 		private static boolean isKanji(int c) {
 			return c < UNICODE_TO_QR_KANJI.length && UNICODE_TO_QR_KANJI[c] != -1;
 		}
-		
-		
-		// Data derived from ftp://ftp.unicode.org/Public/MAPPINGS/OBSOLETE/EASTASIA/JIS/SHIFTJIS.TXT
+
+		/**
+		 * Data derived from <a href=
+		 * "ftp://ftp.unicode.org/Public/MAPPINGS/OBSOLETE/EASTASIA/JIS/SHIFTJIS.TXT">ftp://ftp.unicode.org/Public/MAPPINGS/OBSOLETE/EASTASIA/JIS/SHIFTJIS.TXT</a>
+		 */
 		private static final String PACKED_QR_KANJI_TO_UNICODE =
 			"MAAwATAC/wz/DjD7/xr/G/8f/wEwmzCcALT/QACo/z7/4/8/MP0w/jCdMJ4wA07dMAUwBjAHMPwgFSAQ/w8AXDAcIBb/XCAmICUgGCAZIBwgHf8I/wkwFDAV/zv/Pf9b/10wCDAJMAowCzAMMA0wDjAPMBAwEf8LIhIAsQDX//8A9/8dImD/HP8eImYiZyIeIjQmQiZA" +
 			"ALAgMiAzIQP/5f8EAKIAo/8F/wP/Bv8K/yAApyYGJgUlyyXPJc4lxyXGJaEloCWzJbIlvSW8IDswEiGSIZAhkSGTMBP/////////////////////////////IggiCyKGIocigiKDIioiKf////////////////////8iJyIoAKwh0iHUIgAiA///////////////////" +
@@ -686,8 +720,7 @@ public final class QrSegment {
 			"////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////" +
 			"////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////" +
 			"/////////////////////////////////////////////w==";
-		
-		
+
 		private static short[] UNICODE_TO_QR_KANJI = new short[1 << 16];
 		
 		static {  // Unpack the Shift JIS table into a more computation-friendly form
@@ -701,14 +734,5 @@ public final class QrSegment {
 				UNICODE_TO_QR_KANJI[c] = (short)(i / 2);
 			}
 		}
-		
-		
-		
-		/*---- Miscellaneous ----*/
-		
-		private Utility() {}  // Not instantiable
-		
 	}
-	
-	
 }

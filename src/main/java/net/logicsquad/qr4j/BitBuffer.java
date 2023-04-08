@@ -9,37 +9,46 @@ import java.util.Objects;
  * @author <a href="mailto:me@nayuki.io">Nayuki</a>
  */
 final class BitBuffer {
-	
-	/*---- Fields ----*/
-	
-	int[] data;  // In each 32-bit word, bits are filled from top down.
-	
-	int bitLength;  // Always non-negative.
-	
-	
-	
-	/*---- Constructor ----*/
-	
-	// Creates an empty bit buffer.
+	// In each 32-bit word, bits are filled from top down.
+	/**
+	 * Container for bits
+	 */
+	int[] data;  
+
+	// Always non-negative.
+	/**
+	 * Count of bits represented
+	 */
+	int bitLength;
+
+	/**
+	 * Constructor creating an empty {@code BitBuffer}
+	 */
 	public BitBuffer() {
 		data = new int[64];
 		bitLength = 0;
 	}
-	
-	
-	
-	/*---- Methods ----*/
-	
-	// Returns the bit at the given index, yielding 0 or 1.
+
+	/**
+	 * Returns bit at {@code index}, yielding 0 or 1.
+	 * 
+	 * @param index index into buffer
+	 * @return bit value
+	 * @throws IndexOutOfBoundsException if {@code index} is not in {@code [0, bitLength)}
+	 */
 	public int getBit(int index) {
 		if (index < 0 || index >= bitLength)
 			throw new IndexOutOfBoundsException();
 		return (data[index >>> 5] >>> ~index) & 1;
 	}
-	
-	
-	// Returns a new array representing this buffer's bits packed into
-	// bytes in big endian. The current bit length must be a multiple of 8.
+
+	/**
+	 * Returns a new array representing this {@code BitBuffer}'s bits packed into {@code byte}s (in big-endian
+	 * ordering). The current {@code bitLength} must be a multiple of 8.
+	 * 
+	 * @return bits packed into array of {@code byte}s
+	 * @throws IllegalStateException if this {@code BitBuffer} doesn't contain a whole number of bytes
+	 */
 	public byte[] getBytes() {
 		if (bitLength % 8 != 0)
 			throw new IllegalStateException("Data is not a whole number of bytes");
@@ -48,10 +57,14 @@ final class BitBuffer {
 			result[i] = (byte)(data[i >>> 2] >>> (~i << 3));
 		return result;
 	}
-	
-	
-	// Appends the given number of low-order bits of the given value
-	// to this buffer. Requires 0 <= len <= 31 and 0 <= val < 2^len.
+
+	/**
+	 * Appends {@code len} low-order bits of {@code val} to this buffer. Requires {@code 0 <= len <= 31} and
+	 * {@code 0 <= val < 2^len}.
+	 * 
+	 * @param val source of bits
+	 * @param len number of bits to append
+	 */
 	public void appendBits(int val, int len) {
 		if (len < 0 || len > 31 || val >>> len != 0)
 			throw new IllegalArgumentException("Value out of range");
@@ -75,10 +88,14 @@ final class BitBuffer {
 		data[bitLength >>> 5] |= val << (remain - len);
 		bitLength += len;
 	}
-	
-	
-	// Appends to this buffer the sequence of bits represented by the given
-	// word array and given bit length. Requires 0 <= len <= 32 * vals.length.
+
+	/**
+	 * Appends to this buffer {@code len} bits from the sequence of bits represented by {@code val}. Requires
+	 * {@code 0 <= len <= 32 * vals.length}.
+	 * 
+	 * @param vals word array
+	 * @param len number of bits to append
+	 */
 	public void appendBits(int[] vals, int len) {
 		Objects.requireNonNull(vals);
 		if (len == 0)
@@ -110,5 +127,4 @@ final class BitBuffer {
 				appendBits(vals[wholeWords] >>> (32 - tailBits), tailBits);
 		}
 	}
-	
 }

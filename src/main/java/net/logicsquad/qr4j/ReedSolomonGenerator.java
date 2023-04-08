@@ -9,18 +9,22 @@ import java.util.Objects;
  * @author <a href="mailto:me@nayuki.io">Nayuki</a>
  */
 final class ReedSolomonGenerator {
+	/**
+	 * {@link Memoizer} holding instances of this class
+	 */
+	public static final Memoizer<Integer, ReedSolomonGenerator> MEMOIZER = new Memoizer<>(ReedSolomonGenerator::new);	
 	
-	// Use this memoizer to get instances of this class.
-	public static final Memoizer<Integer,ReedSolomonGenerator> MEMOIZER
-		= new Memoizer<>(ReedSolomonGenerator::new);
-	
-	
-	// A table of size 256 * degree, where polynomialMultiply[i][j] = multiply(i, coefficients[j]).
-	// 'coefficients' is the temporary array computed in the constructor.
+	/**
+	 * A table of size 256 * degree, where {@code polynomialMultiply[i][j] = multiply(i, coefficients[j])}.
+	 * 'coefficients' is the temporary array computed in the constructor.
+	 */
 	private byte[][] polynomialMultiply;
-	
-	
-	// Creates a Reed-Solomon ECC generator polynomial for the given degree.
+
+	/**
+	 * Creates a Reed-Solomon ECC generator polynomial for the given degree.
+	 * 
+	 * @param degree degree
+	 */
 	private ReedSolomonGenerator(int degree) {
 		if (degree < 1 || degree > 255)
 			throw new IllegalArgumentException("Degree out of range");
@@ -50,9 +54,16 @@ final class ReedSolomonGenerator {
 				polynomialMultiply[i][j] = (byte)multiply(i, coefficients[j] & 0xFF);
 		}
 	}
-	
-	
-	// Returns the error correction codeword for the given data polynomial and this divisor polynomial.
+
+	/**
+	 * Returns (via {@code result}) the error correction codeword for the given data polynomial and this divisor
+	 * polynomial.
+	 * 
+	 * @param data
+	 * @param dataOff
+	 * @param dataLen
+	 * @param result
+	 */
 	public void getRemainder(byte[] data, int dataOff, int dataLen, byte[] result) {
 		Objects.requireNonNull(data);
 		Objects.requireNonNull(result);
@@ -67,10 +78,15 @@ final class ReedSolomonGenerator {
 			result[degree - 1] = table[degree - 1];
 		}
 	}
-	
-	
-	// Returns the product of the two given field elements modulo GF(2^8/0x11D). The arguments and result
-	// are unsigned 8-bit integers. This could be implemented as a lookup table of 256*256 entries of uint8.
+
+	/**
+	 * Returns the product of the two given field elements modulo GF(2^8/0x11D). The arguments and result are
+	 * unsigned 8-bit integers. This could be implemented as a lookup table of 256*256 entries of uint8.
+	 * 
+	 * @param x field element
+	 * @param y field element
+	 * @return product
+	 */
 	private static int multiply(int x, int y) {
 		assert x >> 8 == 0 && y >> 8 == 0;
 		// Russian peasant multiplication
@@ -82,5 +98,4 @@ final class ReedSolomonGenerator {
 		assert z >>> 8 == 0;
 		return z;
 	}
-	
 }
