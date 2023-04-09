@@ -55,7 +55,7 @@ public final class QrCode {
 	/**
 	 * ECC codewords per block for version number and ECC level
 	 */
-	private static final byte[][] ECC_CODEWORDS_PER_BLOCK = {
+	static final byte[][] ECC_CODEWORDS_PER_BLOCK = {
 		// Version: (note that index 0 is for padding, and is set to an illegal value)
 		//0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40    Error correction level
 		{-1,  7, 10, 15, 20, 26, 18, 20, 24, 30, 18, 20, 24, 26, 30, 22, 24, 28, 30, 28, 28, 28, 28, 30, 30, 26, 28, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30},  // Low
@@ -67,7 +67,7 @@ public final class QrCode {
 	/**
 	 * Number of error correction blocks for version number and ECC level
 	 */
-	private static final byte[][] NUM_ERROR_CORRECTION_BLOCKS = {
+	static final byte[][] NUM_ERROR_CORRECTION_BLOCKS = {
 		// Version: (note that index 0 is for padding, and is set to an illegal value)
 		//0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40    Error correction level
 		{-1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 4,  4,  4,  4,  4,  6,  6,  6,  6,  7,  8,  8,  9,  9, 10, 12, 12, 12, 13, 14, 15, 16, 17, 18, 19, 19, 20, 21, 22, 24, 25},  // Low
@@ -75,7 +75,16 @@ public final class QrCode {
 		{-1, 1, 1, 2, 2, 4, 4, 6, 6, 8, 8,  8, 10, 12, 16, 12, 17, 16, 18, 21, 20, 23, 23, 25, 27, 29, 34, 34, 35, 38, 40, 43, 45, 48, 51, 53, 56, 59, 62, 65, 68},  // Quartile
 		{-1, 1, 1, 2, 4, 4, 4, 5, 6, 8, 8, 11, 11, 16, 16, 18, 16, 19, 21, 25, 25, 25, 34, 30, 32, 35, 37, 40, 42, 45, 48, 51, 54, 57, 60, 63, 66, 70, 74, 77, 81},  // High
 	};
-	
+
+	private static final int[][] NUM_DATA_CODEWORDS = {
+		// Version: (note that index 0 is for padding, and is set to an illegal value)
+		//0,     1,    2,    3,    4,    5,    6,    7,    8,    9,   10,   11,   12,   13,   14,   15,   16,   17,   18,   19,   20,   21,   22,   23,   24,   25,   26,   27,   28,   29,   30,   31,   32,   33,   34,   35,   36,   37,   38,   39,   40    Error correction level
+		{-1,    19,   34,   55,   80,  108,  136,  156,  194,  232,  274,  324,  370,  428,  461,  523,  589,  647,  721,  795,  861,  932, 1006, 1094, 1174, 1276, 1370, 1468, 1531, 1631, 1735, 1843, 1955, 2071, 2191, 2306, 2434, 2566, 2702, 2812, 2956}, // Low
+		{-1,    16,   28,   44,   64,   86,  108,  124,  154,  182,  216,  254,  290,  334,  365,  415,  453,  507,  563,  627,  669,  714,  782,  860,  914, 1000, 1062, 1128, 1193, 1267, 1373, 1455, 1541, 1631, 1725, 1812, 1914, 1992, 2102, 2216, 2334}, // Medium
+		{-1,    13,   22,   34,   48,   62,   76,   88,  110,  132,  154,  180,  206,  244,  261,  295,  325,  367,  397,  445,  485,  512,  568,  614,  664,  718,  754,  808,  871,  911,  985, 1033, 1115, 1171, 1231, 1286, 1354, 1426, 1502, 1582, 1666}, // Quartile
+		{-1,     9,   16,   26,   36,   46,   60,   66,   86,  100,  122,  140,  158,  180,  197,  223,  253,  283,  313,  341,  385,  406,  442,  464,  514,  538,  596,  628,  661,  701,  745,  793,  845,  901,  961,  986, 1054, 1096, 1142, 1222, 1276}  // High
+	};
+
 	/**
 	 * The version number of this QR Code, which is between 1 and 40 (inclusive). This determines the size of this
 	 * barcode.
@@ -576,17 +585,14 @@ public final class QrCode {
 
 	/**
 	 * Returns the number of 8-bit data (i.e. not error correction) codewords contained in any QR Code of the
-	 * given version number and error correction level, with remainder bits discarded. This stateless pure
-	 * function could be implemented as a (40*4)-cell lookup table.
+	 * given version number and error correction level, with remainder bits discarded.
 	 * 
 	 * @param version              version
 	 * @param errorCorrectionLevel error correction level
 	 * @return number of data codewords
 	 */
 	static int getNumDataCodewords(int version, Ecc errorCorrectionLevel) {
-		return Template.getNumRawDataModules(version) / 8
-			- ECC_CODEWORDS_PER_BLOCK    [errorCorrectionLevel.ordinal()][version]
-			* NUM_ERROR_CORRECTION_BLOCKS[errorCorrectionLevel.ordinal()][version];
+		return NUM_DATA_CODEWORDS[errorCorrectionLevel.ordinal()][version];
 	}
 
 	/**
@@ -756,7 +762,7 @@ public final class QrCode {
 	 * 
 	 * @author <a href="mailto:me@nayuki.io">Nayuki</a>
 	 */
-	private static final class Template {
+	static final class Template {
 		/**
 		 * {@link Memoizer} holding instances of this class
 		 */

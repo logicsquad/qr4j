@@ -1,5 +1,7 @@
 package net.logicsquad.qr4j;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -10,6 +12,9 @@ import java.util.List;
 import javax.imageio.ImageIO;
 
 import org.junit.jupiter.api.Test;
+
+import net.logicsquad.qr4j.QrCode.Ecc;
+import net.logicsquad.qr4j.QrCode.Template;
 
 /**
  * Fast QR Code generator demo
@@ -66,8 +71,7 @@ public class QrCodeTest {
 			+ "a White Rabbit with pink eyes ran close by her.", QrCode.Ecc.HIGH);
 		writePng(qr.toImage(6, 10), "alice-wonderland-QR.png");
 	}
-	
-	
+
 	// Creates QR Codes with manually specified segments for better compactness.
 	@Test
 	public void doSegmentDemo() throws IOException {
@@ -109,8 +113,7 @@ public class QrCodeTest {
 		qr = QrCode.encodeSegments(segs, QrCode.Ecc.LOW);
 		writePng(qr.toImage(9, 4, 0xE0F0FF, 0x404040), "madoka-kanji-QR.png");
 	}
-	
-	
+
 	// Creates QR Codes with the same size and contents but different mask patterns.
 	@Test
 	public void doMaskDemo() throws IOException {
@@ -135,14 +138,25 @@ public class QrCodeTest {
 		qr = QrCode.encodeSegments(segs, QrCode.Ecc.MEDIUM, QrCode.MIN_VERSION, QrCode.MAX_VERSION, 7, true);  // Force mask 7
 		writePng(qr.toImage(10, 3), "unicode-mask7-QR.png");
 	}
-	
-	
-	
-	/*---- Utilities ----*/
-	
-	
+
 	// Helper function to reduce code duplication.
 	private static void writePng(BufferedImage img, String filepath) throws IOException {
 		ImageIO.write(img, "png", new File(filepath));
+	}
+
+	// Tests the lookup table against the original method
+	@Test
+	public void getNumDataCodewordsTest() {
+		for (Ecc errorCorrectionLevel : Ecc.values()) {
+			for (int version = QrCode.MIN_VERSION; version <= QrCode.MAX_VERSION; version++) {
+				assertEquals(getNumDataCodewords(version, errorCorrectionLevel), QrCode.getNumDataCodewords(version, errorCorrectionLevel));
+			}
+		}
+	}
+
+	// Original method from QrCode
+	private static int getNumDataCodewords(int version, Ecc errorCorrectionLevel) {
+		return Template.getNumRawDataModules(version) / 8 - QrCode.ECC_CODEWORDS_PER_BLOCK[errorCorrectionLevel.ordinal()][version]
+				* QrCode.NUM_ERROR_CORRECTION_BLOCKS[errorCorrectionLevel.ordinal()][version];
 	}
 }

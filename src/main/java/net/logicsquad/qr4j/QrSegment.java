@@ -67,7 +67,7 @@ public final class QrSegment {
 	final int bitLength;
 
 	/**
-	 * Constructs a QR Code segment. The character count ({@code numCh}) must agree with the mode and the bit
+	 * Constructs a QR Code segment. The character count ({@code numChars}) must agree with the mode and the bit
 	 * buffer length, but the constraint isn't checked. The specified bit buffer is cloned and stored.
 	 * 
 	 * @param mode      the mode (not {@code null})
