@@ -769,6 +769,21 @@ public final class QrCode {
 		public static final Memoizer<Integer, Template> MEMOIZER = new Memoizer<>(Template::new);		
 
 		/**
+		 * Alignment pattern positions
+		 */
+		private static final int[][] ALIGNMENT_PATTERN_POSITIONS = {
+			{},
+			{}, { 6, 18 }, { 6, 22 }, { 6, 26 }, { 6, 30 },
+			{ 6, 34 }, { 6, 22, 38 }, { 6, 24, 42 }, { 6, 26, 46 }, { 6, 28, 50 },
+			{ 6, 30, 54 }, { 6, 32, 58 }, { 6, 34, 62 }, { 6, 26, 46, 66 }, { 6, 26, 48, 70 },
+			{ 6, 26, 50, 74 }, { 6, 30, 54, 78 }, { 6, 30, 56, 82 }, { 6, 30, 58, 86 }, { 6, 34, 62, 90 },
+			{ 6, 28, 50, 72, 94 }, { 6, 26, 50, 74, 98 }, { 6, 30, 54, 78, 102 }, { 6, 28, 54, 80, 106 }, { 6, 32, 58, 84, 110 },
+			{ 6, 30, 58, 86, 114 }, { 6, 34, 62, 90, 118 }, { 6, 26, 50, 74, 98, 122 }, { 6, 30, 54, 78, 102, 126 }, { 6, 26, 52, 78, 104, 130 },
+			{ 6, 30, 56, 82, 108, 134 }, { 6, 34, 60, 86, 112, 138 }, { 6, 30, 58, 86, 114, 142 }, { 6, 34, 62, 90, 118, 146 }, { 6, 30, 54, 78, 102, 126, 150 },
+			{ 6, 24, 50, 76, 102, 128, 154 }, { 6, 28, 54, 80, 106, 132, 158 }, { 6, 32, 58, 84, 110, 136, 162 }, { 6, 26, 54, 82, 110, 138, 166 }, { 6, 30, 58, 86, 114, 142, 170 }
+		};
+
+		/**
 		 * Version number (in the range {@code [1, 40]})
 		 */
 		private final int version;
@@ -1011,25 +1026,24 @@ public final class QrCode {
 		}
 
 		/**
-		 * Returns an ascending list of positions of alignment patterns for this version number. Each position is in
-		 * the range [0,177), and are used on both the x and y axes. This could be implemented as lookup table of 40
-		 * variable-length lists of unsigned bytes.
+		 * Returns an ascending list of positions of alignment patterns for this object's {@link #version}. Each
+		 * position is in the range [0,177), and are used on both the x and y axes.
 		 * 
-		 * @return alignment pattersn
+		 * @return alignment patterns
 		 */
 		private int[] getAlignmentPatternPositions() {
-			if (version == 1)
-				return new int[]{};
-			else {
-				int numAlign = version / 7 + 2;
-				int step = (version == 32) ? 26 :
-					(version * 4 + numAlign * 2 + 1) / (numAlign * 2 - 2) * 2;
-				int[] result = new int[numAlign];
-				result[0] = 6;
-				for (int i = result.length - 1, pos = size - 7; i >= 1; i--, pos -= step)
-					result[i] = pos;
-				return result;
-			}
+			return getAlignmentPatternPositions(version);
+		}
+
+		/**
+		 * Returns an ascending list of positions of alignment patterns for {@code version}. Each position is in the
+		 * range [0,177), and are used on both the x and y axes.
+		 * 
+		 * @param version QR code version
+		 * @return alignment patterns
+		 */
+		static int[] getAlignmentPatternPositions(int version) {
+			return ALIGNMENT_PATTERN_POSITIONS[version];
 		}
 
 		/**

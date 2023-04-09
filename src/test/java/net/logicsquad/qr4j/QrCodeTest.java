@@ -1,5 +1,6 @@
 package net.logicsquad.qr4j;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.awt.image.BufferedImage;
@@ -158,5 +159,31 @@ public class QrCodeTest {
 	private static int getNumDataCodewords(int version, Ecc errorCorrectionLevel) {
 		return Template.getNumRawDataModules(version) / 8 - QrCode.ECC_CODEWORDS_PER_BLOCK[errorCorrectionLevel.ordinal()][version]
 				* QrCode.NUM_ERROR_CORRECTION_BLOCKS[errorCorrectionLevel.ordinal()][version];
+	}
+
+	// Tests the lookup table against the original method
+	@Test
+	public void getAlignmentPatternPositionsTest() {
+		for (int version = QrCode.MIN_VERSION; version <= QrCode.MAX_VERSION; version++) {
+			assertArrayEquals(getAlignmentPatternPositions(version), QrCode.Template.getAlignmentPatternPositions(version));
+		}
+		return;
+	}
+
+	// Original method from QrCode
+	private static int[] getAlignmentPatternPositions(int version) {
+		if (version == 1)
+			return new int[]{};
+		else {
+			int size = version * 4 + 17;
+			int numAlign = version / 7 + 2;
+			int step = (version == 32) ? 26 :
+				(version * 4 + numAlign * 2 + 1) / (numAlign * 2 - 2) * 2;
+			int[] result = new int[numAlign];
+			result[0] = 6;
+			for (int i = result.length - 1, pos = size - 7; i >= 1; i--, pos -= step)
+				result[i] = pos;
+			return result;
+		}
 	}
 }
