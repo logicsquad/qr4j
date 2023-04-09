@@ -707,7 +707,6 @@ public final class QrCode {
 		long brd = border;
 		StringBuilder sb = new StringBuilder()
 			.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
-			.append("<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 1.1//EN\" \"http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd\">\n")
 			.append(String.format("<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" viewBox=\"0 0 %1$d %1$d\" stroke=\"none\">\n",
 				size + brd * 2))
 			.append("\t<rect width=\"100%\" height=\"100%\" fill=\"" + lightColor + "\"/>\n")
