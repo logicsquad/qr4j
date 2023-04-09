@@ -33,24 +33,24 @@ final class Memoizer<T, R> {
 	/**
 	 * Constructor taking a {@link Function} that takes one input to compute an output
 	 * 
-	 * @param func {@link Function} from index type to return type
+	 * @param function {@link Function} from index type to return type
 	 */
-	public Memoizer(Function<T, R> func) {
-		function = func;
+	public Memoizer(Function<T, R> function) {
+		this.function = function;
 		return;
 	}
 
 	/**
 	 * Returns an object of the return type for the supplied index value. This either computes
-	 * {@code function.apply(arg)} or returns a cached copy of a previous call.
+	 * {@code function.apply(index)} or returns a cached copy of a previous call.
 	 * 
-	 * @param arg value of index type
+	 * @param index value of index type
 	 * @return computed result
 	 */
-	public R get(T arg) {
+	public R get(T index) {
 		// Non-blocking fast path
 		{
-			SoftReference<R> ref = cache.get(arg);
+			SoftReference<R> ref = cache.get(index);
 			if (ref != null) {
 				R result = ref.get();
 				if (result != null)
@@ -61,16 +61,16 @@ final class Memoizer<T, R> {
 		// Sequential slow path
 		while (true) {
 			synchronized (this) {
-				SoftReference<R> ref = cache.get(arg);
+				SoftReference<R> ref = cache.get(index);
 				if (ref != null) {
 					R result = ref.get();
 					if (result != null)
 						return result;
-					cache.remove(arg);
+					cache.remove(index);
 				}
-				assert !cache.containsKey(arg);
+				assert !cache.containsKey(index);
 
-				if (pending.add(arg))
+				if (pending.add(index))
 					break;
 
 				try {
@@ -82,12 +82,12 @@ final class Memoizer<T, R> {
 		}
 
 		try {
-			R result = function.apply(arg);
-			cache.put(arg, new SoftReference<>(result));
+			R result = function.apply(index);
+			cache.put(index, new SoftReference<>(result));
 			return result;
 		} finally {
 			synchronized (this) {
-				pending.remove(arg);
+				pending.remove(index);
 				this.notifyAll();
 			}
 		}

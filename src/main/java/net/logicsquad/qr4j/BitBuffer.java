@@ -27,6 +27,7 @@ final class BitBuffer {
 	public BitBuffer() {
 		data = new int[64];
 		bitLength = 0;
+		return;
 	}
 
 	/**
@@ -59,72 +60,74 @@ final class BitBuffer {
 	}
 
 	/**
-	 * Appends {@code len} low-order bits of {@code val} to this buffer. Requires {@code 0 <= len <= 31} and
-	 * {@code 0 <= val < 2^len}.
+	 * Appends {@code length} low-order bits of {@code value} to this buffer. Requires {@code 0 <= length <= 31}
+	 * and {@code 0 <= value < 2^length}.
 	 * 
-	 * @param val source of bits
-	 * @param len number of bits to append
+	 * @param value  source of bits
+	 * @param length number of bits to append
 	 */
-	public void appendBits(int val, int len) {
-		if (len < 0 || len > 31 || val >>> len != 0)
+	public void appendBits(int value, int length) {
+		if (length < 0 || length > 31 || value >>> length != 0)
 			throw new IllegalArgumentException("Value out of range");
-		if (len > Integer.MAX_VALUE - bitLength)
+		if (length > Integer.MAX_VALUE - bitLength)
 			throw new IllegalStateException("Maximum length reached");
 		
-		if (bitLength + len + 1 > data.length << 5)
+		if (bitLength + length + 1 > data.length << 5)
 			data = Arrays.copyOf(data, data.length * 2);
-		assert bitLength + len <= data.length << 5;
+		assert bitLength + length <= data.length << 5;
 		
 		int remain = 32 - (bitLength & 0x1F);
 		assert 1 <= remain && remain <= 32;
-		if (remain < len) {
-			data[bitLength >>> 5] |= val >>> (len - remain);
+		if (remain < length) {
+			data[bitLength >>> 5] |= value >>> (length - remain);
 			bitLength += remain;
 			assert (bitLength & 0x1F) == 0;
-			len -= remain;
-			val &= (1 << len) - 1;
+			length -= remain;
+			value &= (1 << length) - 1;
 			remain = 32;
 		}
-		data[bitLength >>> 5] |= val << (remain - len);
-		bitLength += len;
+		data[bitLength >>> 5] |= value << (remain - length);
+		bitLength += length;
+		return;
 	}
 
 	/**
-	 * Appends to this buffer {@code len} bits from the sequence of bits represented by {@code val}. Requires
-	 * {@code 0 <= len <= 32 * vals.length}.
+	 * Appends to this buffer {@code length} bits from the sequence of bits represented by {@code values}.
+	 * Requires {@code 0 <= length <= 32 * values.length}.
 	 * 
-	 * @param vals word array
-	 * @param len number of bits to append
+	 * @param values word array
+	 * @param length number of bits to append
 	 */
-	public void appendBits(int[] vals, int len) {
-		Objects.requireNonNull(vals);
-		if (len == 0)
+	public void appendBits(int[] values, int length) {
+		Objects.requireNonNull(values);
+		if (length == 0)
 			return;
-		if (len < 0 || len > vals.length * 32L)
+		if (length < 0 || length > values.length * 32L)
 			throw new IllegalArgumentException("Value out of range");
-		int wholeWords = len / 32;
-		int tailBits = len % 32;
-		if (tailBits > 0 && vals[wholeWords] << tailBits != 0)
+		int wholeWords = length / 32;
+		int tailBits = length % 32;
+		if (tailBits > 0 && values[wholeWords] << tailBits != 0)
 			throw new IllegalArgumentException("Last word must have low bits clear");
-		if (len > Integer.MAX_VALUE - bitLength)
+		if (length > Integer.MAX_VALUE - bitLength)
 			throw new IllegalStateException("Maximum length reached");
 		
-		while (bitLength + len > data.length * 32)
+		while (bitLength + length > data.length * 32)
 			data = Arrays.copyOf(data, data.length * 2);
 		
 		int shift = bitLength % 32;
 		if (shift == 0) {
-			System.arraycopy(vals, 0, data, bitLength / 32, (len + 31) / 32);
-			bitLength += len;
+			System.arraycopy(values, 0, data, bitLength / 32, (length + 31) / 32);
+			bitLength += length;
 		} else {
 			for (int i = 0; i < wholeWords; i++) {
-				int word = vals[i];
+				int word = values[i];
 				data[bitLength >>> 5] |= word >>> shift;
 				bitLength += 32;
 				data[bitLength >>> 5] = word << (32 - shift);
 			}
 			if (tailBits > 0)
-				appendBits(vals[wholeWords] >>> (32 - tailBits), tailBits);
+				appendBits(values[wholeWords] >>> (32 - tailBits), tailBits);
 		}
+		return;
 	}
 }

@@ -38,10 +38,10 @@ public class DataTooLongException extends IllegalArgumentException {
 	/**
 	 * Constructor taking a message
 	 * 
-	 * @param msg a message
+	 * @param message a message
 	 */
-	public DataTooLongException(String msg) {
-		super(msg);
+	public DataTooLongException(String message) {
+		super(message);
 		return;
 	}
 }

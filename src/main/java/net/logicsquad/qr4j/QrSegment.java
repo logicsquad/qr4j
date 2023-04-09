@@ -70,27 +70,32 @@ public final class QrSegment {
 	 * Constructs a QR Code segment. The character count ({@code numCh}) must agree with the mode and the bit
 	 * buffer length, but the constraint isn't checked. The specified bit buffer is cloned and stored.
 	 * 
-	 * @param md     the mode (not {@code null})
-	 * @param numCh  the data length in characters or bytes, which is non-negative
-	 * @param data   the data bits (not {@code null})
-	 * @param bitLen the number of valid prefix bits in the data array
+	 * @param mode      the mode (not {@code null})
+	 * @param numChars  the data length in characters or bytes, which is non-negative
+	 * @param data      the data bits (not {@code null})
+	 * @param bitLength the number of valid prefix bits in the data array
 	 * @throws NullPointerException     if the mode or data is {@code null}
 	 * @throws IllegalArgumentException if the character count is negative
 	 */
-	public QrSegment(Mode md, int numCh, int[] data, int bitLen) {
-		mode = Objects.requireNonNull(md);
+	public QrSegment(Mode mode, int numChars, int[] data, int bitLength) {
+		this.mode = Objects.requireNonNull(mode);
 		this.data = Objects.requireNonNull(data);
-		if (numCh < 0 || bitLen < 0 || bitLen > data.length * 32L)
+		if (numChars < 0 || bitLength < 0 || bitLength > data.length * 32L)
 			throw new IllegalArgumentException("Invalid value");
-		numChars = numCh;
-		bitLength = bitLen;
+		this.numChars = numChars;
+		this.bitLength = bitLength;
+		return;
 	}
 
 	/**
 	 * Describes how a segment's data bits are interpreted.
 	 */
 	public enum Mode {
-		NUMERIC(0x1, 10, 12, 14), ALPHANUMERIC(0x2, 9, 11, 13), BYTE(0x4, 8, 16, 16), KANJI(0x8, 8, 10, 12), ECI(0x7, 0, 0, 0);
+		NUMERIC(0x1, 10, 12, 14),
+		ALPHANUMERIC(0x2, 9, 11, 13),
+		BYTE(0x4, 8, 16, 16),
+		KANJI(0x8, 8, 10, 12),
+		ECI(0x7, 0, 0, 0);
 
 		/**
 		 * Indicator bits, which is a {@code uint4} value (range 0 to 15)
@@ -105,24 +110,24 @@ public final class QrSegment {
 		/**
 		 * Constructor
 		 * 
-		 * @param mode   mode
-		 * @param ccbits character count bits
+		 * @param modeBits         mode
+		 * @param numBitsCharCount character count bits
 		 */
-		private Mode(int mode, int... ccbits) {
-			modeBits = mode;
-			numBitsCharCount = ccbits;
+		private Mode(int modeBits, int... numBitsCharCount) {
+			this.modeBits = modeBits;
+			this.numBitsCharCount = numBitsCharCount;
 		}
 
 		/**
 		 * Returns the bit width of the character count field for a segment in this mode in a QR Code at the given
 		 * version number. The result is in the range {@code [0, 16]}.
 		 * 
-		 * @param ver version
+		 * @param version version
 		 * @return number of character count bits
 		 */
-		int numCharCountBits(int ver) {
-			assert QrCode.MIN_VERSION <= ver && ver <= QrCode.MAX_VERSION;
-			return numBitsCharCount[(ver + 7) / 17];
+		int numCharCountBits(int version) {
+			assert QrCode.MIN_VERSION <= version && version <= QrCode.MAX_VERSION;
+			return numBitsCharCount[(version + 7) / 17];
 		}
 	}
 
@@ -302,14 +307,14 @@ public final class QrSegment {
 	 * non-negative number if successful. Otherwise returns -1 if a segment has too many characters to fit its
 	 * length field, or the total bits exceeds {@code Integer.MAX_VALUE}.
 	 * 
-	 * @param segs    list of {@link QrSegment}s
-	 * @param version version
+	 * @param segments list of {@link QrSegment}s
+	 * @param version  version
 	 * @return number of bits needed, or -1 if any segment is too long
 	 */
-	static int getTotalBits(List<QrSegment> segs, int version) {
-		Objects.requireNonNull(segs);
+	static int getTotalBits(List<QrSegment> segments, int version) {
+		Objects.requireNonNull(segments);
 		long result = 0;
-		for (QrSegment seg : segs) {
+		for (QrSegment seg : segments) {
 			Objects.requireNonNull(seg);
 			int ccbits = seg.mode.numCharCountBits(version);
 			if (seg.numChars >= (1 << ccbits))
@@ -345,20 +350,20 @@ public final class QrSegment {
 		 * {@link QrCode#encodeSegments(List,QrCode.Ecc,int,int,int,boolean)}.
 		 * </p>
 		 * 
-		 * @param text       the text to be encoded (not {@code null}), which can be any Unicode string
-		 * @param ecl        the error correction level to use (not {@code null})
-		 * @param minVersion the minimum allowed version of the QR Code (at least 1)
-		 * @param maxVersion the maximum allowed version of the QR Code (at most 40)
+		 * @param text                 the text to be encoded (not {@code null}), which can be any Unicode string
+		 * @param errorCorrectionLevel the error correction level to use (not {@code null})
+		 * @param minVersion           the minimum allowed version of the QR Code (at least 1)
+		 * @param maxVersion           the maximum allowed version of the QR Code (at most 40)
 		 * @return a new mutable list (not {@code null}) of segments (not {@code null}) containing the text,
 		 *         minimizing the bit length with respect to the constraints
 		 * @throws NullPointerException     if {@code text} or {@code ecl} is {@code null}
 		 * @throws IllegalArgumentException if 1 &#x2264; minVersion &#x2264; maxVersion &#x2264; 40 is violated
 		 * @throws DataTooLongException     if {@code text} fails to fit in the maxVersion QR Code at the ECL
 		 */
-		public static List<QrSegment> makeSegmentsOptimally(String text, QrCode.Ecc ecl, int minVersion, int maxVersion) {
+		public static List<QrSegment> makeSegmentsOptimally(String text, QrCode.Ecc errorCorrectionLevel, int minVersion, int maxVersion) {
 			// Check arguments
 			Objects.requireNonNull(text);
-			Objects.requireNonNull(ecl);
+			Objects.requireNonNull(errorCorrectionLevel);
 			if (!(QrCode.MIN_VERSION <= minVersion && minVersion <= maxVersion && maxVersion <= QrCode.MAX_VERSION))
 				throw new IllegalArgumentException("Invalid value");
 			
@@ -371,7 +376,7 @@ public final class QrSegment {
 				assert segs != null;
 				
 				// Check if the segments fit
-				int dataCapacityBits = QrCode.getNumDataCodewords(version, ecl) * 8;  // Number of data bits available
+				int dataCapacityBits = QrCode.getNumDataCodewords(version, errorCorrectionLevel) * 8;  // Number of data bits available
 				int dataUsedBits = QrSegment.getTotalBits(segs, version);
 				if (dataUsedBits != -1 && dataUsedBits <= dataCapacityBits)
 					return segs;  // This version number is found to be suitable
@@ -491,19 +496,19 @@ public final class QrSegment {
 		 * in the same mode are put into the same segment.
 		 * 
 		 * @param codePoints array of codepoint values
-		 * @param charModes  array of {@link Mode}s
+		 * @param modes      array of {@link Mode}s
 		 * @return list of segments
 		 */
-		private static List<QrSegment> splitIntoSegments(int[] codePoints, Mode[] charModes) {
+		private static List<QrSegment> splitIntoSegments(int[] codePoints, Mode[] modes) {
 			if (codePoints.length == 0)
 				throw new IllegalArgumentException();
 			List<QrSegment> result = new ArrayList<>();
 			
 			// Accumulate run of modes
-			Mode curMode = charModes[0];
+			Mode curMode = modes[0];
 			int start = 0;
 			for (int i = 1; ; i++) {
-				if (i < codePoints.length && charModes[i] == curMode)
+				if (i < codePoints.length && modes[i] == curMode)
 					continue;
 				String s = new String(codePoints, start, i - start);
 				if (curMode == Mode.BYTE)
@@ -518,7 +523,7 @@ public final class QrSegment {
 					throw new AssertionError();
 				if (i >= codePoints.length)
 					return result;
-				curMode = charModes[i];
+				curMode = modes[i];
 				start = i;
 			}
 		}
@@ -527,11 +532,11 @@ public final class QrSegment {
 		 * Returns a new array of Unicode code points (effectively UTF-32 / UCS-4) representing the given UTF-16
 		 * string.
 		 * 
-		 * @param s a string
+		 * @param string a string
 		 * @return array of codepoints
 		 */
-		private static int[] toCodePoints(String s) {
-			int[] result = s.codePoints().toArray();
+		private static int[] toCodePoints(String string) {
+			int[] result = string.codePoints().toArray();
 			for (int c : result) {
 				if (Character.isSurrogate((char)c))
 					throw new IllegalArgumentException("Invalid UTF-16 string");
