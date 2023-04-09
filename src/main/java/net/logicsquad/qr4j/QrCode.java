@@ -784,6 +784,15 @@ public final class QrCode {
 		};
 
 		/**
+		 * Number of raw data modules
+		 */
+		private static final int[] NUM_RAW_DATA_MODULES = {
+			// Version: (note that index 0 is for padding, and is set to an illegal value)
+			//0,   1,   2,   3,   4,    5,    6,    7,    8,    9,   10,   11,   12,   13,   14,   15,   16,   17,   18,   19,   20,   21,    22,    23,    24,    25,    26,    27,    28,    29,    30,    31,    32,    33,    34,    35,    36,    37,    38,    39,    40
+			 -1, 208, 359, 567, 807, 1079, 1383, 1568, 1936, 2336, 2768, 3232, 3728, 4256, 4651, 5243, 5867, 6523, 7211, 7931, 8683, 9252, 10068, 10916, 11796, 12708, 13652, 14628, 15371, 16411, 17483, 18587, 19723, 20891, 22091, 23008, 24272, 25568, 26896, 28256, 29648
+		};
+
+		/**
 		 * Version number (in the range {@code [1, 40]})
 		 */
 		private final int version;
@@ -1049,22 +1058,13 @@ public final class QrCode {
 		/**
 		 * Returns the number of data bits that can be stored in a QR Code of the given version number, after all
 		 * function modules are excluded. This includes remainder bits, so it might not be a multiple of 8. The result
-		 * is in the range [208, 29648]. This could be implemented as a 40-entry lookup table.
+		 * is in the range [208, 29648].
 		 * 
 		 * @param version version number
 		 * @return number of data bits
 		 */
 		static int getNumRawDataModules(int version) {
-			if (version < QrCode.MIN_VERSION || version > QrCode.MAX_VERSION)
-				throw new IllegalArgumentException("Version number out of range");
-			int result = (16 * version + 128) * version + 64;
-			if (version >= 2) {
-				int numAlign = version / 7 + 2;
-				result -= (25 * numAlign - 10) * numAlign - 55;
-				if (version >= 7)
-					result -= 36;
-			}
-			return result;
+			return NUM_RAW_DATA_MODULES[version];
 		}
 	}
 }

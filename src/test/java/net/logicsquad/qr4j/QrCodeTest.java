@@ -186,4 +186,27 @@ public class QrCodeTest {
 			return result;
 		}
 	}
+
+	// Tests the lookup table against the original method
+	@Test
+	public void getNumRawDataModulesTest() {
+		for (int version = QrCode.MIN_VERSION; version <= QrCode.MAX_VERSION; version++) {
+			assertEquals(getNumRawDataModules(version), QrCode.Template.getNumRawDataModules(version));
+		}
+		return;
+	}
+
+	// Original method from QrCode
+	private static int getNumRawDataModules(int version) {
+		if (version < QrCode.MIN_VERSION || version > QrCode.MAX_VERSION)
+			throw new IllegalArgumentException("Version number out of range");
+		int result = (16 * version + 128) * version + 64;
+		if (version >= 2) {
+			int numAlign = version / 7 + 2;
+			result -= (25 * numAlign - 10) * numAlign - 55;
+			if (version >= 7)
+				result -= 36;
+		}
+		return result;
+	}
 }
