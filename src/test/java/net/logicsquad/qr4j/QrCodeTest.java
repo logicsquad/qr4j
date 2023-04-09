@@ -32,7 +32,7 @@ public class QrCodeTest {
 		File imgFile = new File("hello-world-QR.png");   // File path for output
 		ImageIO.write(img, "png", imgFile);              // Write image to file
 		
-		String svg = qr.toSvgString(4, "#FFFFFF", "#000000");  // Convert to SVG XML code
+		String svg = qr.toSvg(4, "#FFFFFF", "#000000");  // Convert to SVG XML code
 		File svgFile = new File("hello-world-QR.svg");          // File path for output
 		Files.write(svgFile.toPath(),                           // Write image to file
 			svg.getBytes(StandardCharsets.UTF_8));

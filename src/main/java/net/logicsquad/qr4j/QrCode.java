@@ -699,7 +699,7 @@ public final class QrCode {
 	 * @throws NullPointerException     if any argument is {@code null}
 	 * @throws IllegalArgumentException if the border is negative
 	 */
-	public String toSvgString(int border, String lightColor, String darkColor) {
+	public String toSvg(int border, String lightColor, String darkColor) {
 		Objects.requireNonNull(lightColor);
 		Objects.requireNonNull(darkColor);
 		if (border < 0)
