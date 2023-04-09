@@ -690,7 +690,8 @@ public final class QrCode {
 
 	/**
 	 * Returns a string of SVG code for an image depicting this object, with the specified number of border
-	 * modules. The string always uses Unix newlines (\n), regardless of the platform.
+	 * modules. The string always uses Unix newlines (\n), regardless of the platform. No XML declaration is
+	 * emitted.
 	 * 
 	 * @param border     the number of border modules to add, which must be non-negative
 	 * @param lightColor the color to use for light modules, in any format supported by CSS, not {@code null}
@@ -698,16 +699,36 @@ public final class QrCode {
 	 * @return a string representing the QR Code as an SVG XML document
 	 * @throws NullPointerException     if any argument is {@code null}
 	 * @throws IllegalArgumentException if the border is negative
+	 * @see #toSvg(int, String, String, boolean)
 	 */
 	public String toSvg(int border, String lightColor, String darkColor) {
+		return toSvg(border, lightColor, darkColor, false);
+	}
+
+	/**
+	 * Returns a string of SVG code for an image depicting this object, with the specified number of border
+	 * modules. The string always uses Unix newlines (\n), regardless of the platform.
+	 * 
+	 * @param border         the number of border modules to add, which must be non-negative
+	 * @param lightColor     the color to use for light modules, in any format supported by CSS, not {@code null}
+	 * @param darkColor      the color to use for dark modules, in any format supported by CSS, not {@code null}
+	 * @param xmlDeclaration should we emit an XML declaration?
+	 * @return a string representing the QR Code as an SVG XML document
+	 * @throws NullPointerException     if any argument is {@code null}
+	 * @throws IllegalArgumentException if the border is negative
+	 * @see #toSvg(int, String, String)
+	 */
+	public String toSvg(int border, String lightColor, String darkColor, boolean xmlDeclaration) {
 		Objects.requireNonNull(lightColor);
 		Objects.requireNonNull(darkColor);
 		if (border < 0)
 			throw new IllegalArgumentException("Border must be non-negative");
 		long brd = border;
-		StringBuilder sb = new StringBuilder()
-			.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
-			.append(String.format("<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" viewBox=\"0 0 %1$d %1$d\" stroke=\"none\">\n",
+		StringBuilder sb = new StringBuilder();
+		if (xmlDeclaration) {
+			sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+		}
+		sb.append(String.format("<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" viewBox=\"0 0 %1$d %1$d\" stroke=\"none\">\n",
 				size + brd * 2))
 			.append("\t<rect width=\"100%\" height=\"100%\" fill=\"" + lightColor + "\"/>\n")
 			.append("\t<path d=\"");
