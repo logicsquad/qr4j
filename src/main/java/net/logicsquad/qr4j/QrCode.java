@@ -721,17 +721,16 @@ public final class QrCode {
 	public String toSvg(int border, String lightColor, String darkColor, boolean xmlDeclaration) {
 		Objects.requireNonNull(lightColor);
 		Objects.requireNonNull(darkColor);
-		if (border < 0)
+		if (border < 0) {
 			throw new IllegalArgumentException("Border must be non-negative");
+		}
 		long brd = border;
 		StringBuilder sb = new StringBuilder();
 		if (xmlDeclaration) {
 			sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
 		}
-		sb.append(String.format("<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" viewBox=\"0 0 %1$d %1$d\" stroke=\"none\">\n",
-				size + brd * 2))
-			.append("\t<rect width=\"100%\" height=\"100%\" fill=\"" + lightColor + "\"/>\n")
-			.append("\t<path d=\"");
+		sb.append(String.format("<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" viewBox=\"0 0 %1$d %1$d\" stroke=\"none\">\n", size + brd * 2))
+				.append("\t<rect width=\"100%\" height=\"100%\" fill=\"" + lightColor + "\"/>\n").append("\t<path d=\"");
 		for (int y = 0; y < size; y++) {
 			for (int x = 0; x < size; x++) {
 				if (getModule(x, y)) {
@@ -741,10 +740,7 @@ public final class QrCode {
 				}
 			}
 		}
-		return sb
-			.append("\" fill=\"" + darkColor + "\"/>\n")
-			.append("</svg>\n")
-			.toString();
+		return sb.append("\" fill=\"" + darkColor + "\"/>\n").append("</svg>\n").toString();
 	}
 
 	/**
