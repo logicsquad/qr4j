@@ -32,10 +32,27 @@ File imgFile = new File("hello-world-QR.png");
 ImageIO.write(img, "png", imgFile);
 ```
 
+Or in a web application, you could just return SVG:
+
+```
+return qr.toSvg(4, "#cccccc", "#333333");
+```
+
 Using QR4J
 ----------
 Right now, we're still at `0.1-SNAPSHOT`, but as soon as 1.0 is ready,
 it will ship to Maven Central. Stay tuned.
+
+Roadmap
+-------
+The following are some potential ideas for future releases:
+
+1. It would certainly be great to have more unit tests.
+
+Contributing
+------------
+By all means, open issue tickets and pull requests if you have something
+to contribute.
 
 References
 ----------
