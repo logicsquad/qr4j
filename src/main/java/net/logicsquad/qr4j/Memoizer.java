@@ -23,12 +23,12 @@ final class Memoizer<T, R> {
 	/**
 	 * Cache of return values
 	 */
-	private Map<T, SoftReference<R>> cache = new ConcurrentHashMap<>();
+	private final Map<T, SoftReference<R>> cache = new ConcurrentHashMap<>();
 
 	/**
 	 * Set of index values for which a result is being computed
 	 */
-	private Set<T> pending = new HashSet<>();	
+	private final Set<T> pending = new HashSet<>();	
 
 	/**
 	 * Constructor taking a {@link Function} that takes one input to compute an output

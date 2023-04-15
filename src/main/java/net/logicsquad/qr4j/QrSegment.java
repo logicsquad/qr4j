@@ -34,14 +34,14 @@ public final class QrSegment {
 	private static final int[] ALPHANUMERIC_MAP;
 	
 	static {
-		final String ALPHANUMERIC_CHARSET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:";
+		final String alphanumericCharset = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:";
 		int maxCh = -1;
-		for (int i = 0; i < ALPHANUMERIC_CHARSET.length(); i++)
-			maxCh = Math.max(ALPHANUMERIC_CHARSET.charAt(i), maxCh);
+		for (int i = 0; i < alphanumericCharset.length(); i++)
+			maxCh = Math.max(alphanumericCharset.charAt(i), maxCh);
 		ALPHANUMERIC_MAP = new int[maxCh + 1];
 		Arrays.fill(ALPHANUMERIC_MAP, -1);
-		for (int i = 0; i < ALPHANUMERIC_CHARSET.length(); i++)
-			ALPHANUMERIC_MAP[ALPHANUMERIC_CHARSET.charAt(i)] = i;
+		for (int i = 0; i < alphanumericCharset.length(); i++)
+			ALPHANUMERIC_MAP[alphanumericCharset.charAt(i)] = i;
 	}
 
 	/**
@@ -726,7 +726,7 @@ public final class QrSegment {
 			"////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////" +
 			"/////////////////////////////////////////////w==";
 
-		private static short[] UNICODE_TO_QR_KANJI = new short[1 << 16];
+		private static final short[] UNICODE_TO_QR_KANJI = new short[1 << 16];
 		
 		static {  // Unpack the Shift JIS table into a more computation-friendly form
 			Arrays.fill(UNICODE_TO_QR_KANJI, (short)-1);

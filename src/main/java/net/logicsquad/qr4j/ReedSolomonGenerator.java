@@ -339,7 +339,7 @@ final class ReedSolomonGenerator {
 	 * A table of size 256 * degree, where {@code polynomialMultiply[i][j] = multiply(i, coefficients[j])}.
 	 * 'coefficients' is the temporary array computed in the constructor.
 	 */
-	private byte[][] polynomialMultiply;
+	private final byte[][] polynomialMultiply;
 
 	/**
 	 * Creates a Reed-Solomon ECC generator polynomial for the given degree.
@@ -377,7 +377,7 @@ final class ReedSolomonGenerator {
 	}
 
 	/**
-	 * Returns (via {@code result}) the error correction codeword for the given data polynomial and this divisor
+	 * Calculates (into {@code result}) the error correction codeword for the given data polynomial and this divisor
 	 * polynomial.
 	 * 
 	 * @param data
@@ -385,7 +385,7 @@ final class ReedSolomonGenerator {
 	 * @param dataLen
 	 * @param result
 	 */
-	public void getRemainder(byte[] data, int dataOff, int dataLen, byte[] result) {
+	public void calculateRemainder(byte[] data, int dataOff, int dataLen, byte[] result) {
 		Objects.requireNonNull(data);
 		Objects.requireNonNull(result);
 		int degree = polynomialMultiply[0].length;
