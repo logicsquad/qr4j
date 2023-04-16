@@ -25,23 +25,24 @@ Getting started
 ---------------
 Generating a QR code is this simple:
 
-```
-QrCode qr = QrCode.encodeText("Hello, world!", QrCode.Ecc.LOW);
-BufferedImage img = qr.toImage(10, 4);
-File imgFile = new File("hello-world-QR.png");
-ImageIO.write(img, "png", imgFile);
-```
+    QrCode qr = QrCode.encodeText("Hello, world!", QrCode.Ecc.LOW);
+    BufferedImage img = qr.toImage(10, 4);
+    File imgFile = new File("hello-world-QR.png");
+    ImageIO.write(img, "png", imgFile);
 
 Or in a web application, you could just return SVG:
 
-```
-return qr.toSvg(4, "#cccccc", "#333333");
-```
+    return qr.toSvg(4, "#cccccc", "#333333");
 
 Using QR4J
 ----------
-Right now, we're still at `0.1-SNAPSHOT`, but as soon as 1.0 is ready,
-it will ship to Maven Central. Stay tuned.
+You can use QR4J in your projects by including it as a Maven dependency:
+
+    <dependency>
+      <groupId>net.logicsquad</groupId>
+      <artifactId>qr4j</artifactId>
+      <version>1.0</version>
+    </dependency>
 
 Roadmap
 -------
