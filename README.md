@@ -1,3 +1,6 @@
+![](https://github.com/logicsquad/qr4j/workflows/build/badge.svg)
+[![License](https://img.shields.io/badge/License-BSD-blue.svg)](https://opensource.org/license/bsd-2-clause/)
+
 QR4J
 ====
 
@@ -7,15 +10,54 @@ QR4J is a Java library for generating
 [QR codes](https://en.wikipedia.org/wiki/QR_code). QR4J is intended to
 be:
 
-* Self-contained: no network API hits to any external services.
+* self-contained: no network API hits to any external services; and
 
-* Minimally-dependent: using QR4J should not involve pulling in a
+* minimally-dependent: using QR4J should not involve pulling in a
   plethora of JARs, and ideally none at all.
 
+QR4J is _not_ intended to:
+
+* _read_ QR codes; or
+
+* generate _any other type_ of barcode.
+
+Getting started
+---------------
+Generating a QR code is this simple:
+
+    QrCode qr = QrCode.encodeText("Hello, world!", QrCode.Ecc.LOW);
+    BufferedImage img = qr.toImage(10, 4);
+    File imgFile = new File("hello-world-QR.png");
+    ImageIO.write(img, "png", imgFile);
+
+Or in a web application, you could just return SVG:
+
+    return qr.toSvg(4, "#cccccc", "#333333");
+
+Using QR4J
+----------
+You can use QR4J in your projects by including it as a Maven dependency:
+
+    <dependency>
+      <groupId>net.logicsquad</groupId>
+      <artifactId>qr4j</artifactId>
+      <version>1.0</version>
+    </dependency>
+
+Roadmap
+-------
+The following are some potential ideas for future releases:
+
+1. It would certainly be great to have more unit tests.
+
+Contributing
+------------
+By all means, open issue tickets and pull requests if you have something
+to contribute.
 
 References
 ----------
-QR4J is based on
+QR4J is _heavily_ based on
 [QR Code generator library](https://github.com/nayuki/QR-Code-generator),
 specifically the `io.nayuki.fastqrcodegen` package.
 
