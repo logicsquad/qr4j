@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>net.logicsquad</groupId>
   <artifactId>qr4j</artifactId>
-  <version>0.1-SNAPSHOT</version>
+  <version>1.0</version>
   <name>QR4J</name>
   <description>A Java-based QR code generator with a minimum of dependencies.</description>
   <url>https://github.com/logicsquad/qr4j</url>
