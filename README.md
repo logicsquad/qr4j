@@ -44,12 +44,6 @@ You can use QR4J in your projects by including it as a Maven dependency:
       <version>1.0</version>
     </dependency>
 
-Roadmap
--------
-The following are some potential ideas for future releases:
-
-1. It would certainly be great to have more unit tests.
-
 Contributing
 ------------
 By all means, open issue tickets and pull requests if you have something
