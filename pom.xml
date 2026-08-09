@@ -46,6 +46,7 @@
     <maven.compiler.target>1.8</maven.compiler.target>
     <pmd.version>6.20.0</pmd.version>
     <jacoco.version>0.8.13</jacoco.version>
+    <spotbugs.version>4.10.3.0</spotbugs.version>
   </properties>
 
   <profiles>
@@ -251,15 +252,6 @@
         </configuration>
       </plugin>
       <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>findbugs-maven-plugin</artifactId>
-        <version>3.0.4</version>
-        <configuration>
-          <xmlOutput>true</xmlOutput>
-          <xmlOutputDirectory>target/site</xmlOutputDirectory>
-        </configuration>
-      </plugin>
-      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jxr-plugin</artifactId>
         <version>3.0.0</version>
@@ -275,7 +267,9 @@
           <targetJdk>1.8</targetJdk>
           <skipEmptyReport>false</skipEmptyReport>
           <rulesets>
-            <ruleset>http://artefacts.logicsquad.net.s3.amazonaws.com/logicsquad_pmd.xml</ruleset>
+            <!-- Path-style, region-specific URL: the virtual-host form does not work over
+                 HTTPS, because the dotted bucket name does not match S3's wildcard cert. -->
+            <ruleset>https://s3.ap-southeast-2.amazonaws.com/artefacts.logicsquad.net/logicsquad_pmd.xml</ruleset>
           </rulesets>
         </configuration>
       </plugin>
@@ -284,17 +278,19 @@
         <artifactId>maven-checkstyle-plugin</artifactId>
         <version>3.2.1</version>
         <configuration>
-          <configLocation>http://artefacts.logicsquad.net.s3.amazonaws.com/logicsquad_checks.xml</configLocation>
+          <!-- See the note on the PMD ruleset URL above. -->
+          <configLocation>https://s3.ap-southeast-2.amazonaws.com/artefacts.logicsquad.net/logicsquad_checks.xml</configLocation>
         </configuration>
       </plugin>
       <plugin>
         <groupId>com.github.spotbugs</groupId>
         <artifactId>spotbugs-maven-plugin</artifactId>
-        <version>3.1.12</version>
+        <version>${spotbugs.version}</version>
         <configuration>
           <effort>Max</effort>
           <threshold>Low</threshold>
           <maxHeap>2048</maxHeap>
+          <excludeFilterFile>${project.basedir}/src/config/spotbugs-exclude.xml</excludeFilterFile>
         </configuration>
       </plugin>
       <!-- Note when reading this report: instruction and line coverage are dominated by

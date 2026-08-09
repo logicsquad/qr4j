@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+  SpotBugs exclusions for QR4J.
+
+  Keep this list short and keep every entry justified. A report with a couple of
+  findings everyone knows to ignore is a report nobody reads.
+
+  Note what is deliberately NOT excluded: EI_EXPOSE_REP2 on the QrSegment constructor,
+  which stores the caller's array rather than copying it. That one is a real defect and
+  is tracked separately; it should be fixed rather than silenced.
+-->
+<FindBugsFilter>
+
+  <!--
+    SpotBugs recommends "%n" over "\n" in a format string, on the grounds that "\n" is
+    not the platform line separator. Here that is exactly the point: both toSvg()
+    overloads document that the result "always uses Unix newlines (\n), regardless of
+    the platform", and callers embedding the SVG in an HTTP response depend on the
+    output being byte-identical everywhere.
+
+    Following this advice reintroduces a platform-dependent bug that is invisible on
+    Linux and macOS, where "%n" resolves to "\n" anyway. It has been introduced once
+    already. QrCodeGoldenMasterTest.svgUsesUnixNewlinesOnly() and the committed .svg
+    fixtures, exercised by the Windows job in CI, are what catch it.
+  -->
+  <Match>
+    <Class name="net.logicsquad.qr4j.QrCode"/>
+    <Method name="toSvg"/>
+    <Bug pattern="VA_FORMAT_STRING_USES_NEWLINE"/>
+  </Match>
+
+  <!--
+    False positive. getBytes() does:
+
+        result[i] = (byte)(data[i >>> 2] >>> (~i << 3));
+
+    The shifted value is immediately narrowed to a byte, and >>> and >> are
+    indistinguishable in the low eight bits, so the "questionable" unsigned shift cannot
+    affect the result.
+  -->
+  <Match>
+    <Class name="net.logicsquad.qr4j.BitBuffer"/>
+    <Method name="getBytes"/>
+    <Bug pattern="ICAST_QUESTIONABLE_UNSIGNED_RIGHT_SHIFT"/>
+  </Match>
+
+</FindBugsFilter>
