@@ -122,10 +122,26 @@ public class QrCodeGoldenMasterTest {
 	}
 
 	/**
-	 * Reads the fixture with the given file name from the test classpath.
+	 * <p>
+	 * Reads the fixture with the given file name from the test classpath, normalising its line endings to
+	 * {@code \n}.
+	 * </p>
+	 *
+	 * <p>
+	 * A Git client configured to translate line endings on checkout (the default on Windows) will present these
+	 * fixtures with CRLF endings, which would otherwise fail every comparison for a reason that has nothing to do
+	 * with QR4J. {@code .gitattributes} pins the fixtures to LF so this should not arise, but normalising here
+	 * means the tests do not silently depend on the developer's Git configuration.
+	 * </p>
+	 *
+	 * <p>
+	 * Note carefully that only the <em>expected</em> side is normalised. Generated output is always compared
+	 * verbatim, so a stray carriage return in what {@link QrCode#toSvg(int, String, String)} produces is still a
+	 * failure, which is the whole point of keeping the {@code .svg} fixtures and the Windows CI job.
+	 * </p>
 	 *
 	 * @param fileName fixture file name
-	 * @return fixture content
+	 * @return fixture content, with any CRLF line endings reduced to LF
 	 * @throws IOException if the fixture cannot be read
 	 */
 	private static String readFixture(String fileName) throws IOException {
@@ -137,7 +153,7 @@ public class QrCodeGoldenMasterTest {
 			int count;
 			while ((count = in.read(chunk)) > 0)
 				out.write(chunk, 0, count);
-			return new String(out.toByteArray(), StandardCharsets.UTF_8);
+			return new String(out.toByteArray(), StandardCharsets.UTF_8).replace("\r\n", "\n");
 		}
 	}
 
