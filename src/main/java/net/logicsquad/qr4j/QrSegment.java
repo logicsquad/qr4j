@@ -68,8 +68,9 @@ public final class QrSegment {
 
 	/**
 	 * Constructs a QR Code segment. The character count ({@code numChars}) must agree with the mode and the bit
-	 * buffer length, but the constraint isn't checked. The specified bit buffer is cloned and stored.
-	 * 
+	 * buffer length, but the constraint isn't checked. The specified bit buffer is cloned and stored, so changes
+	 * made to it after this constructor returns do not affect the resulting segment.
+	 *
 	 * @param mode      the mode (not {@code null})
 	 * @param numChars  the data length in characters or bytes, which is non-negative
 	 * @param data      the data bits (not {@code null})
@@ -78,13 +79,59 @@ public final class QrSegment {
 	 * @throws IllegalArgumentException if the character count is negative
 	 */
 	public QrSegment(Mode mode, int numChars, int[] data, int bitLength) {
+		this(mode, numChars, data, bitLength, true);
+		return;
+	}
+
+	/**
+	 * Constructor taking a flag controlling whether {@code data} is cloned. Cloning is what makes instances of
+	 * this class immutable, and is not optional for callers outside this class: see
+	 * {@link #ofOwnedData(Mode, int, int[], int)}.
+	 *
+	 * @param mode      the mode (not {@code null})
+	 * @param numChars  the data length in characters or bytes, which is non-negative
+	 * @param data      the data bits (not {@code null})
+	 * @param bitLength the number of valid prefix bits in the data array
+	 * @param clone     should {@code data} be cloned rather than retained?
+	 * @throws NullPointerException     if the mode or data is {@code null}
+	 * @throws IllegalArgumentException if the character count is negative
+	 */
+	private QrSegment(Mode mode, int numChars, int[] data, int bitLength, boolean clone) {
 		this.mode = Objects.requireNonNull(mode);
-		this.data = Objects.requireNonNull(data);
+		Objects.requireNonNull(data);
 		if (numChars < 0 || bitLength < 0 || bitLength > data.length * 32L)
 			throw new IllegalArgumentException("Invalid value");
+		this.data = clone ? data.clone() : data;
 		this.numChars = numChars;
 		this.bitLength = bitLength;
 		return;
+	}
+
+	/**
+	 * <p>
+	 * Returns a segment that retains {@code data} rather than cloning it.
+	 * </p>
+	 * <p>
+	 * This exists for the factory methods in this class, each of which builds a buffer it owns outright and then
+	 * discards, so that the common path does not pay for a copy it cannot benefit from. Several of them pass a
+	 * {@link BitBuffer}'s backing array, which is at least 64 words and grows by doubling, so that copy would
+	 * frequently be much larger than the data it carries.
+	 * </p>
+	 * <p>
+	 * The caller must own {@code data} outright and must not retain a reference to it, since doing so would
+	 * defeat this class's immutability.
+	 * </p>
+	 *
+	 * @param mode      the mode (not {@code null})
+	 * @param numChars  the data length in characters or bytes, which is non-negative
+	 * @param data      the data bits (not {@code null}), which become the property of the returned segment
+	 * @param bitLength the number of valid prefix bits in the data array
+	 * @return a segment backed by {@code data}
+	 * @throws NullPointerException     if the mode or data is {@code null}
+	 * @throws IllegalArgumentException if the character count is negative
+	 */
+	static QrSegment ofOwnedData(Mode mode, int numChars, int[] data, int bitLength) {
+		return new QrSegment(mode, numChars, data, bitLength, false);
 	}
 
 	/**
@@ -152,7 +199,7 @@ public final class QrSegment {
 		int[] bits = new int[(data.length + 3) / 4];
 		for (int i = 0; i < data.length; i++)
 			bits[i >>> 2] |= (data[i] & 0xFF) << (~i << 3);
-		return new QrSegment(Mode.BYTE, data.length, bits, data.length * 8);
+		return ofOwnedData(Mode.BYTE, data.length, bits, data.length * 8);
 	}
 
 	/**
@@ -182,7 +229,7 @@ public final class QrSegment {
 		}
 		if (accumCount > 0)  // 1 or 2 digits remaining
 			bb.appendBits(accumData, accumCount * 3 + 1);
-		return new QrSegment(Mode.NUMERIC, digits.length(), bb.data, bb.bitLength);
+		return ofOwnedData(Mode.NUMERIC, digits.length(), bb.data, bb.bitLength);
 	}
 
 	/**
@@ -214,7 +261,7 @@ public final class QrSegment {
 		}
 		if (accumCount > 0)  // 1 character remaining
 			bb.appendBits(accumData, 6);
-		return new QrSegment(Mode.ALPHANUMERIC, text.length(), bb.data, bb.bitLength);
+		return ofOwnedData(Mode.ALPHANUMERIC, text.length(), bb.data, bb.bitLength);
 	}
 	
 	/**
@@ -262,7 +309,7 @@ public final class QrSegment {
 			bb.appendBits(assignVal, 21);
 		} else
 			throw new IllegalArgumentException("ECI assignment value out of range");
-		return new QrSegment(Mode.ECI, 0, bb.data, bb.bitLength);
+		return ofOwnedData(Mode.ECI, 0, bb.data, bb.bitLength);
 	}
 
 	/**
@@ -580,7 +627,7 @@ public final class QrSegment {
 					throw new IllegalArgumentException("String contains non-kanji-mode characters");
 				bb.appendBits(val, 13);
 			});
-			return new QrSegment(Mode.KANJI, text.length(), bb.data, bb.bitLength);
+			return QrSegment.ofOwnedData(Mode.KANJI, text.length(), bb.data, bb.bitLength);
 		}
 
 		/**

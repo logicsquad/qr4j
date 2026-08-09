@@ -57,6 +57,78 @@ public class QrSegmentTest {
 		return;
 	}
 
+	/**
+	 * The class documents itself as immutable and the constructor documents that it clones the supplied buffer, so
+	 * a caller that keeps hold of the array must not be able to change the segment afterwards.
+	 */
+	@Test
+	public void constructorClonesSuppliedData() {
+		int[] data = new int[2];
+		data[0] = 0x41420000;
+		QrSegment segment = new QrSegment(Mode.BYTE, 2, data, 16);
+		assertEquals("0100000101000010", bits(segment));
+
+		data[0] = 0x58590000;
+		assertEquals("0100000101000010", bits(segment), "mutating the caller's array changed the segment");
+		return;
+	}
+
+	/**
+	 * The same thing observed end to end: one segment must always encode to the same symbol.
+	 */
+	@Test
+	public void mutatingCallersArrayDoesNotChangeEncodedOutput() {
+		int[] data = new int[2];
+		data[0] = 0x41420000;
+		QrSegment segment = new QrSegment(Mode.BYTE, 2, data, 16);
+		String before = render(QrCode.encodeSegments(Arrays.asList(segment), QrCode.Ecc.LOW));
+
+		data[0] = 0x58590000;
+		String after = render(QrCode.encodeSegments(Arrays.asList(segment), QrCode.Ecc.LOW));
+		assertEquals(before, after);
+		return;
+	}
+
+	/**
+	 * The internal path deliberately does not clone, since the factory methods own the buffers they pass. Check
+	 * that it still produces an equivalent segment.
+	 */
+	@Test
+	public void ofOwnedDataRetainsSuppliedArray() {
+		int[] data = new int[2];
+		data[0] = 0x41420000;
+		QrSegment segment = QrSegment.ofOwnedData(Mode.BYTE, 2, data, 16);
+		assertSame(data, segment.data);
+		assertEquals("0100000101000010", bits(segment));
+		return;
+	}
+
+	@Test
+	public void ofOwnedDataAppliesSameValidationAsConstructor() {
+		assertThrows(NullPointerException.class, () -> QrSegment.ofOwnedData(null, 0, new int[64], 8));
+		assertThrows(NullPointerException.class, () -> QrSegment.ofOwnedData(Mode.ALPHANUMERIC, 0, null, 8));
+		assertThrows(IllegalArgumentException.class, () -> QrSegment.ofOwnedData(Mode.ALPHANUMERIC, -1, new int[64], 0));
+		assertThrows(IllegalArgumentException.class, () -> QrSegment.ofOwnedData(Mode.ALPHANUMERIC, 0, new int[64], -1));
+		assertThrows(IllegalArgumentException.class,
+				() -> QrSegment.ofOwnedData(Mode.ALPHANUMERIC, 0, new int[64], 64 * 32 + 1));
+		return;
+	}
+
+	/**
+	 * Renders a {@link QrCode} as text, for comparing two symbols.
+	 *
+	 * @param qr a {@link QrCode}
+	 * @return text rendering of the module grid
+	 */
+	private static String render(QrCode qr) {
+		StringBuilder sb = new StringBuilder();
+		for (int y = 0; y < qr.size; y++) {
+			for (int x = 0; x < qr.size; x++)
+				sb.append(qr.getModule(x, y) ? '#' : '.');
+		}
+		return sb.toString();
+	}
+
 	@Test
 	public void isAlphanumericThrowsOnNull() {
 		assertThrows(NullPointerException.class, () -> QrSegment.isAlphanumeric(null));
