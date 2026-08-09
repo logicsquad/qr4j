@@ -45,6 +45,7 @@
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
     <pmd.version>6.20.0</pmd.version>
+    <jacoco.version>0.8.13</jacoco.version>
   </properties>
 
   <profiles>
@@ -216,6 +217,26 @@
           <workingDirectory>${project.build.directory}/test-run</workingDirectory>
         </configuration>
       </plugin>
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>${jacoco.version}</version>
+        <executions>
+          <execution>
+            <id>prepare-agent</id>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>report</id>
+            <phase>test</phase>
+            <goals>
+              <goal>report</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
 
@@ -276,6 +297,22 @@
           <maxHeap>2048</maxHeap>
         </configuration>
       </plugin>
+      <!-- Note when reading this report: instruction and line coverage are dominated by
+           ReedSolomonGenerator's precomputed lookup tables, which are ~300 lines of array
+           literals covered in full by a single loop. Branch coverage and the per-class
+           breakdown are the meaningful numbers. -->
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>${jacoco.version}</version>
+        <reportSets>
+          <reportSet>
+            <reports>
+              <report>report</report>
+            </reports>
+          </reportSet>
+        </reportSets>
+      </plugin>
     </plugins>
   </reporting>
 
@@ -300,6 +337,14 @@
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-engine</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <!-- Test scope only: used as an independent oracle to decode the QR codes we
+         generate. Never appears on a consumer's classpath. -->
+    <dependency>
+      <groupId>com.google.zxing</groupId>
+      <artifactId>core</artifactId>
+      <version>3.5.3</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

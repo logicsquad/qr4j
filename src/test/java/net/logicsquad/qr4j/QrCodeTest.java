@@ -2,149 +2,36 @@ package net.logicsquad.qr4j;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.List;
-import javax.imageio.ImageIO;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import net.logicsquad.qr4j.QrCode.Ecc;
 import net.logicsquad.qr4j.QrCode.Template;
 
 /**
- * Fast QR Code generator demo
- * 
- * Run this command-line program with no arguments. The program creates/overwrites a bunch of PNG and SVG
- * files in the current working directory to demonstrate the creation of QR Codes.
- * 
+ * <p>
+ * Unit tests on {@link QrCode}.
+ * </p>
+ *
+ * <p>
+ * The tests below check the precomputed lookup tables against the computed implementations they replaced. See
+ * {@link QrCodeRoundTripTest} for verification of encoder output against an independent decoder, and
+ * {@link QrCodeGoldenMasterTest} for characterisation of the rendered output.
+ * </p>
+ *
  * @author <a href="mailto:me@nayuki.io">Nayuki</a>
+ * @author paulh
  */
 public class QrCodeTest {
-	// Creates a single QR Code, then writes it to a PNG file and an SVG file.
-	@Test
-	public void doBasicDemo() throws IOException {
-		String text = "Hello, world!";          // User-supplied Unicode text
-		QrCode.Ecc errCorLvl = QrCode.Ecc.LOW;  // Error correction level
-		
-		QrCode qr = QrCode.encodeText(text, errCorLvl);  // Make the QR Code symbol
-		
-		BufferedImage img = qr.toImage(10, 4);          // Convert to bitmap image
-		File imgFile = new File("hello-world-QR.png");   // File path for output
-		ImageIO.write(img, "png", imgFile);              // Write image to file
-		
-		String svg = qr.toSvg(4, "#FFFFFF", "#000000");  // Convert to SVG XML code
-		File svgFile = new File("hello-world-QR.svg");          // File path for output
-		Files.write(svgFile.toPath(),                           // Write image to file
-			svg.getBytes(StandardCharsets.UTF_8));
-	}
-	
-	// Creates a variety of QR Codes that exercise different features of the library, and writes each one to file.
-	@Test
-	public void doVarietyDemo() throws IOException {
-		QrCode qr;
-		
-		// Numeric mode encoding (3.33 bits per digit)
-		qr = QrCode.encodeText("314159265358979323846264338327950288419716939937510", QrCode.Ecc.MEDIUM);
-		writePng(qr.toImage(13, 1), "pi-digits-QR.png");
-		
-		// Alphanumeric mode encoding (5.5 bits per character)
-		qr = QrCode.encodeText("DOLLAR-AMOUNT:$39.87 PERCENTAGE:100.00% OPERATIONS:+-*/", QrCode.Ecc.HIGH);
-		writePng(qr.toImage(10, 2), "alphanumeric-QR.png");
-		
-		// Unicode text as UTF-8
-		qr = QrCode.encodeText("こんにちwa、世界！ αβγδ", QrCode.Ecc.QUARTILE);
-		writePng(qr.toImage(10, 3), "unicode-QR.png");
-		
-		// Moderately large QR Code using longer text (from Lewis Carroll's Alice in Wonderland)
-		qr = QrCode.encodeText(
-			"Alice was beginning to get very tired of sitting by her sister on the bank, "
-			+ "and of having nothing to do: once or twice she had peeped into the book her sister was reading, "
-			+ "but it had no pictures or conversations in it, 'and what is the use of a book,' thought Alice "
-			+ "'without pictures or conversations?' So she was considering in her own mind (as well as she could, "
-			+ "for the hot day made her feel very sleepy and stupid), whether the pleasure of making a "
-			+ "daisy-chain would be worth the trouble of getting up and picking the daisies, when suddenly "
-			+ "a White Rabbit with pink eyes ran close by her.", QrCode.Ecc.HIGH);
-		writePng(qr.toImage(6, 10), "alice-wonderland-QR.png");
-	}
-
-	// Creates QR Codes with manually specified segments for better compactness.
-	@Test
-	public void doSegmentDemo() throws IOException {
-		QrCode qr;
-		List<QrSegment> segs;
-		
-		// Illustration "silver"
-		String silver0 = "THE SQUARE ROOT OF 2 IS 1.";
-		String silver1 = "41421356237309504880168872420969807856967187537694807317667973799";
-		qr = QrCode.encodeText(silver0 + silver1, QrCode.Ecc.LOW);
-		writePng(qr.toImage(10, 3), "sqrt2-monolithic-QR.png");
-		
-		segs = Arrays.asList(
-			QrSegment.makeAlphanumeric(silver0),
-			QrSegment.makeNumeric(silver1));
-		qr = QrCode.encodeSegments(segs, QrCode.Ecc.LOW);
-		writePng(qr.toImage(10, 3), "sqrt2-segmented-QR.png");
-		
-		// Illustration "golden"
-		String golden0 = "Golden ratio φ = 1.";
-		String golden1 = "6180339887498948482045868343656381177203091798057628621354486227052604628189024497072072041893911374";
-		String golden2 = "......";
-		qr = QrCode.encodeText(golden0 + golden1 + golden2, QrCode.Ecc.LOW);
-		writePng(qr.toImage(8, 5), "phi-monolithic-QR.png");
-		
-		segs = Arrays.asList(
-			QrSegment.makeBytes(golden0.getBytes(StandardCharsets.UTF_8)),
-			QrSegment.makeNumeric(golden1),
-			QrSegment.makeAlphanumeric(golden2));
-		qr = QrCode.encodeSegments(segs, QrCode.Ecc.LOW);
-		writePng(qr.toImage(8, 5), "phi-segmented-QR.png");
-		
-		// Illustration "Madoka": kanji, kana, Cyrillic, full-width Latin, Greek characters
-		String madoka = "「魔法少女まどか☆マギカ」って、　ИАИ　ｄｅｓｕ　κα？";
-		qr = QrCode.encodeText(madoka, QrCode.Ecc.LOW);
-		writePng(qr.toImage(9, 4, 0xFFFFE0, 0x303080), "madoka-utf8-QR.png");
-		
-		segs = Arrays.asList(QrSegment.Utility.makeKanji(madoka));
-		qr = QrCode.encodeSegments(segs, QrCode.Ecc.LOW);
-		writePng(qr.toImage(9, 4, 0xE0F0FF, 0x404040), "madoka-kanji-QR.png");
-	}
-
-	// Creates QR Codes with the same size and contents but different mask patterns.
-	@Test
-	public void doMaskDemo() throws IOException {
-		QrCode qr;
-		List<QrSegment> segs;
-		
-		// Project Nayuki URL
-		segs = QrSegment.makeSegments("https://www.nayuki.io/");
-		qr = QrCode.encodeSegments(segs, QrCode.Ecc.HIGH, QrCode.MIN_VERSION, QrCode.MAX_VERSION, -1, true);  // Automatic mask
-		writePng(qr.toImage(8, 6, 0xE0FFE0, 0x206020), "project-nayuki-automask-QR.png");
-		qr = QrCode.encodeSegments(segs, QrCode.Ecc.HIGH, QrCode.MIN_VERSION, QrCode.MAX_VERSION, 3, true);  // Force mask 3
-		writePng(qr.toImage(8, 6, 0xFFE0E0, 0x602020), "project-nayuki-mask3-QR.png");
-		
-		// Chinese text as UTF-8
-		segs = QrSegment.makeSegments("維基百科（Wikipedia，聆聽i/ˌwɪkᵻˈpiːdi.ə/）是一個自由內容、公開編輯且多語言的網路百科全書協作計畫");
-		qr = QrCode.encodeSegments(segs, QrCode.Ecc.MEDIUM, QrCode.MIN_VERSION, QrCode.MAX_VERSION, 0, true);  // Force mask 0
-		writePng(qr.toImage(10, 3), "unicode-mask0-QR.png");
-		qr = QrCode.encodeSegments(segs, QrCode.Ecc.MEDIUM, QrCode.MIN_VERSION, QrCode.MAX_VERSION, 1, true);  // Force mask 1
-		writePng(qr.toImage(10, 3), "unicode-mask1-QR.png");
-		qr = QrCode.encodeSegments(segs, QrCode.Ecc.MEDIUM, QrCode.MIN_VERSION, QrCode.MAX_VERSION, 5, true);  // Force mask 5
-		writePng(qr.toImage(10, 3), "unicode-mask5-QR.png");
-		qr = QrCode.encodeSegments(segs, QrCode.Ecc.MEDIUM, QrCode.MIN_VERSION, QrCode.MAX_VERSION, 7, true);  // Force mask 7
-		writePng(qr.toImage(10, 3), "unicode-mask7-QR.png");
-	}
-
-	// Helper function to reduce code duplication.
-	private static void writePng(BufferedImage img, String filepath) throws IOException {
-		ImageIO.write(img, "png", new File(filepath));
-	}
-
 	// Tests the lookup table against the original method
 	@Test
 	public void getNumDataCodewordsTest() {
@@ -208,5 +95,272 @@ public class QrCodeTest {
 				result -= 36;
 		}
 		return result;
+	}
+
+	// ---------------------------------------------------------------- constructor
+
+	@ParameterizedTest
+	@ValueSource(ints = { 0, -1, 41, Integer.MIN_VALUE, Integer.MAX_VALUE })
+	public void constructorThrowsWhenVersionOutOfRange(int version) {
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+				() -> new QrCode(version, Ecc.LOW, new byte[19], 0));
+		assertEquals("Version value out of range", e.getMessage());
+		return;
+	}
+
+	@ParameterizedTest
+	@ValueSource(ints = { -2, 8, Integer.MIN_VALUE, Integer.MAX_VALUE })
+	public void constructorThrowsWhenMaskOutOfRange(int mask) {
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+				() -> new QrCode(1, Ecc.LOW, new byte[19], mask));
+		assertEquals("Mask value out of range", e.getMessage());
+		return;
+	}
+
+	@Test
+	public void constructorThrowsOnNulls() {
+		assertThrows(NullPointerException.class, () -> new QrCode(1, null, new byte[19], 0));
+		assertThrows(NullPointerException.class, () -> new QrCode(1, Ecc.LOW, null, 0));
+		return;
+	}
+
+	@Test
+	public void constructorThrowsWhenDataIsWrongLengthForVersionAndLevel() {
+		// Version 1 at level LOW takes exactly 19 data codewords.
+		assertEquals(19, QrCode.getNumDataCodewords(1, Ecc.LOW));
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+				() -> new QrCode(1, Ecc.LOW, new byte[5], 0));
+		assertEquals("Expected 19 data codewords for version 1 at level LOW, but got 5", e.getMessage());
+		assertThrows(IllegalArgumentException.class, () -> new QrCode(1, Ecc.LOW, new byte[20], 0));
+		return;
+	}
+
+	@Test
+	public void constructorAcceptsCorrectlySizedData() {
+		QrCode qr = new QrCode(1, Ecc.LOW, new byte[19], 0);
+		assertEquals(1, qr.version);
+		assertEquals(21, qr.size);
+		assertEquals(Ecc.LOW, qr.errorCorrectionLevel);
+		assertEquals(0, qr.mask);
+		return;
+	}
+
+	/**
+	 * A mask of -1 asks for automatic selection, and must resolve to a concrete mask in the range [0, 7].
+	 */
+	@Test
+	public void constructorResolvesAutomaticMask() {
+		QrCode qr = new QrCode(1, Ecc.LOW, new byte[19], -1);
+		assertTrue(0 <= qr.mask && qr.mask <= 7, "mask was " + qr.mask);
+		return;
+	}
+
+	// ---------------------------------------------------------------- encoding
+
+	@Test
+	public void encodeTextThrowsOnNulls() {
+		assertThrows(NullPointerException.class, () -> QrCode.encodeText(null, Ecc.LOW));
+		assertThrows(NullPointerException.class, () -> QrCode.encodeText("A", null));
+		return;
+	}
+
+	@Test
+	public void encodeBinaryThrowsOnNulls() {
+		assertThrows(NullPointerException.class, () -> QrCode.encodeBinary(null, Ecc.LOW));
+		assertThrows(NullPointerException.class, () -> QrCode.encodeBinary(new byte[1], null));
+		return;
+	}
+
+	@Test
+	public void encodeSegmentsThrowsOnNulls() {
+		assertThrows(NullPointerException.class, () -> QrCode.encodeSegments(null, Ecc.LOW));
+		assertThrows(NullPointerException.class, () -> QrCode.encodeSegments(QrSegment.makeSegments("A"), null));
+		return;
+	}
+
+	@ParameterizedTest
+	@CsvSource({ "0, 40, -1", "1, 41, -1", "5, 4, -1", "1, 40, -2", "1, 40, 8" })
+	public void encodeSegmentsThrowsWhenParametersInvalid(int minVersion, int maxVersion, int mask) {
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> QrCode
+				.encodeSegments(QrSegment.makeSegments("A"), Ecc.LOW, minVersion, maxVersion, mask, true));
+		assertEquals("Invalid value", e.getMessage());
+		return;
+	}
+
+	@Test
+	public void encodeTextAcceptsEmptyString() {
+		QrCode qr = QrCode.encodeText("", Ecc.LOW);
+		assertEquals(1, qr.version);
+		assertEquals(21, qr.size);
+		return;
+	}
+
+	/**
+	 * When the data length is known, the exception reports it against the available capacity.
+	 */
+	@Test
+	public void encodeTextThrowsWhenDataTooLong() {
+		StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < 3000; i++)
+			sb.append('A');
+		DataTooLongException e = assertThrows(DataTooLongException.class, () -> QrCode.encodeText(sb.toString(), Ecc.HIGH));
+		assertTrue(e.getMessage().startsWith("Data length = "), "unexpected message: " + e.getMessage());
+		return;
+	}
+
+	/**
+	 * When a segment's character count will not fit the count field, the data length cannot be computed at all,
+	 * and the exception falls back to a message that does not quote one.
+	 */
+	@Test
+	public void encodeSegmentsReportsSegmentTooLongWhenLengthCannotBeComputed() {
+		// Byte mode at version 1 has an 8 bit character count field, so 256 bytes cannot be described.
+		List<QrSegment> segments = Arrays.asList(QrSegment.makeBytes(new byte[256]));
+		DataTooLongException e = assertThrows(DataTooLongException.class,
+				() -> QrCode.encodeSegments(segments, Ecc.LOW, 1, 1, -1, false));
+		assertEquals("Segment too long", e.getMessage());
+		return;
+	}
+
+	/**
+	 * With {@code boostEcl} set, the error correction level is raised as far as it can go without needing a larger
+	 * version; without it, the requested level is used as-is.
+	 */
+	@Test
+	public void encodeSegmentsBoostsErrorCorrectionLevelOnlyWhenAsked() {
+		List<QrSegment> segments = QrSegment.makeSegments("HELLO");
+		QrCode boosted = QrCode.encodeSegments(segments, Ecc.LOW, 1, 40, -1, true);
+		QrCode plain = QrCode.encodeSegments(segments, Ecc.LOW, 1, 40, -1, false);
+		assertEquals(Ecc.HIGH, boosted.errorCorrectionLevel);
+		assertEquals(Ecc.LOW, plain.errorCorrectionLevel);
+		// Boosting must not cost a larger symbol.
+		assertEquals(plain.version, boosted.version);
+		return;
+	}
+
+	@ParameterizedTest
+	@ValueSource(ints = { 0, 1, 2, 3, 4, 5, 6, 7 })
+	public void encodeSegmentsHonoursForcedMask(int mask) {
+		QrCode qr = QrCode.encodeSegments(QrSegment.makeSegments("HELLO"), Ecc.LOW, 1, 40, mask, true);
+		assertEquals(mask, qr.mask);
+		return;
+	}
+
+	@Test
+	public void encodeSegmentsRespectsMinimumVersion() {
+		QrCode qr = QrCode.encodeSegments(QrSegment.makeSegments("A"), Ecc.LOW, 10, 40, -1, false);
+		assertEquals(10, qr.version);
+		assertEquals(10 * 4 + 17, qr.size);
+		return;
+	}
+
+	// ---------------------------------------------------------------- getModule
+
+	@Test
+	public void getModuleReturnsFalseOutsideBounds() {
+		QrCode qr = QrCode.encodeText("Hello, world!", Ecc.LOW);
+		assertFalse(qr.getModule(-1, 0));
+		assertFalse(qr.getModule(0, -1));
+		assertFalse(qr.getModule(qr.size, 0));
+		assertFalse(qr.getModule(0, qr.size));
+		assertFalse(qr.getModule(Integer.MIN_VALUE, Integer.MIN_VALUE));
+		assertFalse(qr.getModule(Integer.MAX_VALUE, Integer.MAX_VALUE));
+		return;
+	}
+
+	/**
+	 * The top left module of the top left finder pattern is always dark, and the module just outside its
+	 * separator is always light.
+	 */
+	@Test
+	public void getModuleReturnsFinderPatternModules() {
+		QrCode qr = QrCode.encodeText("Hello, world!", Ecc.LOW);
+		assertTrue(qr.getModule(0, 0));
+		assertTrue(qr.getModule(6, 6));
+		assertFalse(qr.getModule(7, 7));
+		return;
+	}
+
+	// ---------------------------------------------------------------- rendering guards
+
+	@ParameterizedTest
+	@CsvSource({ "0, 0", "-1, 0", "-100, 4", "1, -1", "10, -5" })
+	public void toImageThrowsWhenScaleOrBorderOutOfRange(int scale, int border) {
+		QrCode qr = QrCode.encodeText("Hello, world!", Ecc.LOW);
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> qr.toImage(scale, border));
+		assertEquals("Value out of range", e.getMessage());
+		return;
+	}
+
+	@ParameterizedTest
+	@CsvSource({ "1, 2147483647", "2147483647, 0", "2147483647, 2147483647" })
+	public void toImageThrowsWhenResultWouldBeTooLarge(int scale, int border) {
+		QrCode qr = QrCode.encodeText("Hello, world!", Ecc.LOW);
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> qr.toImage(scale, border));
+		assertEquals("Scale or border too large", e.getMessage());
+		return;
+	}
+
+	@Test
+	public void toSvgThrowsOnNullColours() {
+		QrCode qr = QrCode.encodeText("Hello, world!", Ecc.LOW);
+		assertThrows(NullPointerException.class, () -> qr.toSvg(4, null, "#000000"));
+		assertThrows(NullPointerException.class, () -> qr.toSvg(4, "#FFFFFF", null));
+		assertThrows(NullPointerException.class, () -> qr.toSvg(4, null, "#000000", true));
+		return;
+	}
+
+	@ParameterizedTest
+	@ValueSource(ints = { -1, -100, Integer.MIN_VALUE })
+	public void toSvgThrowsWhenBorderNegative(int border) {
+		QrCode qr = QrCode.encodeText("Hello, world!", Ecc.LOW);
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+				() -> qr.toSvg(border, "#FFFFFF", "#000000"));
+		assertEquals("Border must be non-negative", e.getMessage());
+		return;
+	}
+
+	@Test
+	public void toSvgAcceptsZeroBorder() {
+		QrCode qr = QrCode.encodeText("Hello, world!", Ecc.LOW);
+		assertTrue(qr.toSvg(0, "#FFFFFF", "#000000").contains("viewBox=\"0 0 21 21\""));
+		return;
+	}
+
+	// ---------------------------------------------------------------- Ecc and Template
+
+	@Test
+	public void eccFormatBitsHaveSpecifiedValues() {
+		assertEquals(1, Ecc.LOW.formatBits);
+		assertEquals(0, Ecc.MEDIUM.formatBits);
+		assertEquals(3, Ecc.QUARTILE.formatBits);
+		assertEquals(2, Ecc.HIGH.formatBits);
+		return;
+	}
+
+	/**
+	 * {@link Ecc} is declared in ascending order of protection, which the ECC boosting loop relies on.
+	 */
+	@Test
+	public void eccIsDeclaredInAscendingOrderOfProtection() {
+		assertArrayEquals(new Ecc[] { Ecc.LOW, Ecc.MEDIUM, Ecc.QUARTILE, Ecc.HIGH }, Ecc.values());
+		return;
+	}
+
+	@Test
+	public void sizeIsDerivedFromVersion() {
+		for (int version = QrCode.MIN_VERSION; version <= QrCode.MAX_VERSION; version++) {
+			QrCode qr = new QrCode(version, Ecc.LOW, new byte[QrCode.getNumDataCodewords(version, Ecc.LOW)], 0);
+			assertEquals(version * 4 + 17, qr.size);
+		}
+		return;
+	}
+
+	@ParameterizedTest
+	@ValueSource(ints = { 0, 41, -1 })
+	public void templateThrowsWhenVersionOutOfRange(int version) {
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> Template.MEMOIZER.get(version));
+		assertEquals("Version out of range", e.getMessage());
+		return;
 	}
 }
