@@ -17,6 +17,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -154,30 +155,54 @@ public class QrCodeConcurrencyTest {
 	}
 
 	/**
+	 * <p>
 	 * Spreads work across versions and error correction levels, so that several cached {@code Template}s and
 	 * several Reed-Solomon generators are in use at once rather than a single pair.
+	 * </p>
+	 *
+	 * <p>
+	 * Each call takes the next combination from a shared counter rather than every worker walking the list in the
+	 * same order, which is what actually puts different versions in flight simultaneously. It also keeps the cost
+	 * proportional to the number of concurrent operations rather than to their product: encoding at version 40
+	 * means scoring eight masks over 31,329 modules, so doing all twenty-four combinations in every iteration cost
+	 * around a minute on a JDK 8 CI runner and reliably tripped the timeout below.
+	 * </p>
 	 */
 	@Test
 	@Timeout(value = 120, unit = TimeUnit.SECONDS)
 	public void encodeSegmentsIsConsistentAcrossVersionsAndLevels() throws Exception {
 		int[] versions = { 1, 7, 14, 26, 27, 40 };
+		List<int[]> combinations = new ArrayList<>();
 		Map<String, String> expected = new LinkedHashMap<>();
 		for (int version : versions) {
-			for (Ecc ecl : Ecc.values())
-				expected.put(version + "/" + ecl, render(encode(version, ecl)));
+			for (Ecc ecl : Ecc.values()) {
+				combinations.add(new int[] { version, ecl.ordinal() });
+				expected.put(key(version, ecl), render(encode(version, ecl)));
+			}
 		}
 
+		AtomicInteger next = new AtomicInteger();
 		runConcurrently(() -> {
-			for (int version : versions) {
-				for (Ecc ecl : Ecc.values()) {
-					String key = version + "/" + ecl;
-					if (!expected.get(key).equals(render(encode(version, ecl))))
-						return "encodeSegments produced a different symbol at " + key;
-				}
-			}
+			int[] combination = combinations.get(Math.floorMod(next.getAndIncrement(), combinations.size()));
+			int version = combination[0];
+			Ecc ecl = Ecc.values()[combination[1]];
+			String key = key(version, ecl);
+			if (!expected.get(key).equals(render(encode(version, ecl))))
+				return "encodeSegments produced a different symbol at " + key;
 			return null;
 		});
 		return;
+	}
+
+	/**
+	 * Returns a key identifying a version and error correction level pairing.
+	 *
+	 * @param version version
+	 * @param ecl     error correction level
+	 * @return key for {@code version} at {@code ecl}
+	 */
+	private static String key(int version, Ecc ecl) {
+		return version + "/" + ecl;
 	}
 
 	/**
