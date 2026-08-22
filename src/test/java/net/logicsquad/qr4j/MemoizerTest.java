@@ -1,13 +1,18 @@
 package net.logicsquad.qr4j;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.lang.ref.SoftReference;
+import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -15,6 +20,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -166,5 +172,164 @@ public class MemoizerTest {
 		assertEquals("value-1", memoizer.get(1));
 		assertEquals(2, calls.get());
 		return;
+	}
+
+	/**
+	 * <p>
+	 * Reaches the private cache so that a test can clear a {@link SoftReference} the way the collector would.
+	 * </p>
+	 *
+	 * <p>
+	 * The alternative — allocating until the JVM reclaims soft references of its own accord — is slow, sensitive to
+	 * heap settings, and not reliably reproducible. Clearing a reference directly reproduces the same event
+	 * deterministically. Note that this reaches a private <em>field</em> in order to trigger a runtime event, rather
+	 * than reaching past a private method to test code that callers cannot otherwise reach.
+	 * </p>
+	 *
+	 * @param memoizer a {@link Memoizer}
+	 * @param <T>      index type
+	 * @param <R>      return type
+	 * @return the memoizer's cache
+	 * @throws Exception if the field cannot be reached
+	 */
+	@SuppressWarnings("unchecked")
+	private static <T, R> Map<T, SoftReference<R>> cacheOf(Memoizer<T, R> memoizer) throws Exception {
+		Field field = Memoizer.class.getDeclaredField("cache");
+		field.setAccessible(true);
+		return (Map<T, SoftReference<R>>) field.get(memoizer);
+	}
+
+	/**
+	 * <p>
+	 * Caching by {@link SoftReference} is the entire premise of this class: it lets the collector reclaim a cached
+	 * {@code Template} or {@code ReedSolomonGenerator} under memory pressure, leaving {@code get()} to rebuild it on
+	 * demand. Nothing else in the suite ever clears a reference, so that rebuild has never run.
+	 * </p>
+	 *
+	 * <p>
+	 * A caller must see a correct value again, and the rebuilt value must go back into the cache rather than being
+	 * recomputed on every later call — the latter would leave output correct while quietly discarding the caching
+	 * this class exists to provide.
+	 * </p>
+	 */
+	@Test
+	public void clearedReferenceIsRecomputedAndRecached() throws Exception {
+		AtomicInteger calls = new AtomicInteger();
+		Memoizer<Integer, String> memoizer = new Memoizer<>(i -> {
+			calls.incrementAndGet();
+			return "value-" + i;
+		});
+		assertEquals("value-1", memoizer.get(1));
+		assertEquals(1, calls.get());
+
+		cacheOf(memoizer).get(1).clear();
+
+		assertEquals("value-1", memoizer.get(1), "cleared reference was not rebuilt");
+		assertEquals(2, calls.get(), "rebuild did not call the mapping function exactly once more");
+
+		assertEquals("value-1", memoizer.get(1));
+		assertEquals(2, calls.get(), "rebuilt value was not put back in the cache");
+		return;
+	}
+
+	/**
+	 * A cleared reference must be replaced in the cache rather than left sitting beside the rebuilt value.
+	 * {@code get()} asserts as much for itself, which is worth something only if a test reaches that line — and
+	 * Surefire runs with assertions enabled.
+	 */
+	@Test
+	public void clearedReferenceLeavesNoStaleEntry() throws Exception {
+		Memoizer<Integer, String> memoizer = new Memoizer<>(i -> "value-" + i);
+		String first = memoizer.get(1);
+		cacheOf(memoizer).get(1).clear();
+
+		String second = memoizer.get(1);
+		assertNotSame(first, second, "expected a freshly computed value after clearing");
+
+		SoftReference<String> cached = cacheOf(memoizer).get(1);
+		assertNotNull(cached, "key is missing from the cache after rebuild");
+		assertSame(second, cached.get(), "cache does not hold the rebuilt value");
+		return;
+	}
+
+	/**
+	 * <p>
+	 * A caller arriving on a key that another thread is already computing waits on the monitor. Interrupting it
+	 * there is the last path through {@link Memoizer#get(Object)} that no test reaches.
+	 * </p>
+	 *
+	 * <p>
+	 * Be clear about what the last assertion pins. The interrupt is wrapped in a {@link RuntimeException} and the
+	 * thread's interrupt status is <em>not</em> restored, so an executor shutting down upstream will not see it.
+	 * That is a defect rather than a decision, and asserting it here records the current behaviour so that changing
+	 * it has to be deliberate rather than accidental.
+	 * </p>
+	 */
+	@Test
+	@Timeout(value = 30, unit = TimeUnit.SECONDS)
+	public void interruptingWaiterOnPendingKeyIsWrappedAndLosesInterruptStatus() throws Exception {
+		CountDownLatch computing = new CountDownLatch(1);
+		CountDownLatch release = new CountDownLatch(1);
+		Memoizer<Integer, String> memoizer = new Memoizer<>(i -> {
+			computing.countDown();
+			try {
+				release.await();
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+			}
+			return "value-" + i;
+		});
+
+		// Once the mapping function has started, the key is certainly in the pending set.
+		Thread holder = new Thread(() -> memoizer.get(1), "holder");
+		holder.start();
+		assertTrue(computing.await(10, TimeUnit.SECONDS), "mapping function did not start");
+
+		AtomicReference<Throwable> thrown = new AtomicReference<>();
+		AtomicReference<Boolean> stillInterrupted = new AtomicReference<>();
+		Thread waiter = new Thread(() -> {
+			try {
+				memoizer.get(1);
+			} catch (Throwable t) {
+				thrown.set(t);
+				stillInterrupted.set(Thread.currentThread().isInterrupted());
+			}
+		}, "waiter");
+		waiter.start();
+
+		assertTrue(awaitState(waiter, Thread.State.WAITING), "waiter never blocked on the pending key");
+		waiter.interrupt();
+		waiter.join(TimeUnit.SECONDS.toMillis(10));
+
+		assertNotNull(thrown.get(), "waiter returned a value instead of being interrupted");
+		assertEquals(RuntimeException.class, thrown.get().getClass());
+		assertEquals(InterruptedException.class, thrown.get().getCause().getClass());
+		assertFalse(stillInterrupted.get(),
+				"interrupt status is now restored, so Memoizer.get() has been fixed and this test should change");
+
+		// The interrupted waiter must not have disturbed the computation it was waiting on.
+		release.countDown();
+		holder.join(TimeUnit.SECONDS.toMillis(10));
+		assertEquals("value-1", memoizer.get(1), "the holder's computation did not survive the interrupt");
+		return;
+	}
+
+	/**
+	 * Waits for {@code thread} to reach {@code state}, so that a test need not guess at a sleep long enough for a
+	 * loaded CI runner.
+	 *
+	 * @param thread thread to watch
+	 * @param state  state to wait for
+	 * @return {@code true} if {@code thread} reached {@code state} before the timeout
+	 * @throws InterruptedException if the calling thread is interrupted while waiting
+	 */
+	private static boolean awaitState(Thread thread, Thread.State state) throws InterruptedException {
+		long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+		while (System.nanoTime() < deadline) {
+			if (thread.getState() == state)
+				return true;
+			Thread.sleep(5);
+		}
+		return false;
 	}
 }
