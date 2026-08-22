@@ -1,7 +1,6 @@
 package net.logicsquad.qr4j;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -259,15 +258,16 @@ public class MemoizerTest {
 	 * </p>
 	 *
 	 * <p>
-	 * Be clear about what the last assertion pins. The interrupt is wrapped in a {@link RuntimeException} and the
-	 * thread's interrupt status is <em>not</em> restored, so an executor shutting down upstream will not see it.
-	 * That is a defect rather than a decision, and asserting it here records the current behaviour so that changing
-	 * it has to be deliberate rather than accidental.
+	 * {@code get()} cannot propagate the {@link InterruptedException} without adding a checked exception to every
+	 * caller in the encoding path, so it wraps it. What it must not do is discard the interrupt itself:
+	 * {@code wait()} clears the status on the way out, and an executor shutting the thread down needs to see that
+	 * its request was honoured rather than reading an unexplained {@link RuntimeException} from a thread claiming
+	 * it was never interrupted.
 	 * </p>
 	 */
 	@Test
 	@Timeout(value = 30, unit = TimeUnit.SECONDS)
-	public void interruptingWaiterOnPendingKeyIsWrappedAndLosesInterruptStatus() throws Exception {
+	public void interruptingWaiterOnPendingKeyIsWrappedAndPreservesInterruptStatus() throws Exception {
 		CountDownLatch computing = new CountDownLatch(1);
 		CountDownLatch release = new CountDownLatch(1);
 		Memoizer<Integer, String> memoizer = new Memoizer<>(i -> {
@@ -304,8 +304,7 @@ public class MemoizerTest {
 		assertNotNull(thrown.get(), "waiter returned a value instead of being interrupted");
 		assertEquals(RuntimeException.class, thrown.get().getClass());
 		assertEquals(InterruptedException.class, thrown.get().getCause().getClass());
-		assertFalse(stillInterrupted.get(),
-				"interrupt status is now restored, so Memoizer.get() has been fixed and this test should change");
+		assertTrue(stillInterrupted.get(), "interrupt status was not restored before rethrowing");
 
 		// The interrupted waiter must not have disturbed the computation it was waiting on.
 		release.countDown();
