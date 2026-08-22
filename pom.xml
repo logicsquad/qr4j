@@ -142,10 +142,6 @@
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-gpg-plugin</artifactId>
           </plugin>
-          <plugin>
-            <groupId>org.sonatype.plugins</groupId>
-            <artifactId>nexus-staging-maven-plugin</artifactId>
-          </plugin>
         </plugins>
       </build>
     </profile>
@@ -191,6 +187,28 @@
           <artifactId>maven-project-info-reports-plugin</artifactId>
           <version>3.4.5</version>
         </plugin>
+	<plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-gpg-plugin</artifactId>
+          <version>${maven-gpg-plugin.version}</version>
+          <configuration>
+            <gpgArguments>
+              <arg>--batch</arg>
+              <arg>--yes</arg>
+              <arg>--pinentry-mode</arg>
+              <arg>loopback</arg>
+            </gpgArguments>
+          </configuration>
+          <executions>
+            <execution>
+              <id>sign-artifacts</id>
+              <phase>verify</phase>
+              <goals>
+		<goal>sign</goal>
+              </goals>
+            </execution>
+          </executions>
+	</plugin>
       </plugins>
     </pluginManagement>
 
