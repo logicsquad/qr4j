@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>net.logicsquad</groupId>
   <artifactId>qr4j</artifactId>
-  <version>1.0</version>
+  <version>1.1</version>
   <name>QR4J</name>
   <description>A Java-based QR code generator with a minimum of dependencies.</description>
   <url>https://github.com/logicsquad/qr4j</url>
@@ -45,6 +45,14 @@
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
     <pmd.version>6.20.0</pmd.version>
+    <jacoco.version>0.8.13</jacoco.version>
+    <spotbugs.version>4.10.3.0</spotbugs.version>
+    <pitest.version>1.25.9</pitest.version>
+    <pitest.junit5.version>1.2.3</pitest.junit5.version>
+    <central-publishing-maven-plugin.version>0.11.0</central-publishing-maven-plugin.version>
+    <maven-javadoc-plugin.version>3.11.2</maven-javadoc-plugin.version>
+    <maven-source-plugin.version>3.3.1</maven-source-plugin.version>
+    <maven-gpg-plugin.version>3.2.7</maven-gpg-plugin.version>
   </properties>
 
   <profiles>
@@ -56,6 +64,61 @@
       <properties>
         <additionalparam>-Xdoclint:none</additionalparam>
       </properties>
+    </profile>
+
+    <!--
+      Mutation testing, kept out of the default build because it takes about 90 seconds.
+      Run with:
+
+        mvn -Pmutation test-compile org.pitest:pitest-maven:mutationCoverage
+
+      Report lands in target/pit-reports.
+
+      READ THE HEADLINE NUMBER WITH CARE. QrCode.Template and ReedSolomonGenerator are
+      cached in static Memoizers, so their constructors run only once per key for the whole
+      suite. PIT attributes those lines to whichever few tests happened to trigger
+      construction first and then runs only those against each mutant — three tests, where
+      the rest of the codebase gets 15 to 68 — so almost everything there is recorded as
+      surviving. It is an artefact of test selection, not a gap: apply one of those
+      "survivors" by hand (say version * 4 -> version / 4 in the Template constructor) and
+      91 tests fail. Judge those two classes by the golden master and round trip tests
+      instead, and read the score for everything else.
+    -->
+    <profile>
+      <id>mutation</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.pitest</groupId>
+            <artifactId>pitest-maven</artifactId>
+            <version>${pitest.version}</version>
+            <dependencies>
+              <dependency>
+                <groupId>org.pitest</groupId>
+                <artifactId>pitest-junit5-plugin</artifactId>
+                <version>${pitest.junit5.version}</version>
+              </dependency>
+            </dependencies>
+            <configuration>
+              <targetClasses>
+                <param>net.logicsquad.qr4j.*</param>
+              </targetClasses>
+              <!--
+                Excluded as a mutation oracle: these tests are slow, and they sample thread
+                interleavings rather than asserting a deterministic result, so they would
+                make runs both lengthy and unrepeatable.
+              -->
+              <excludedTestClasses>
+                <param>net.logicsquad.qr4j.QrCodeConcurrencyTest</param>
+              </excludedTestClasses>
+              <outputFormats>
+                <param>HTML</param>
+                <param>XML</param>
+              </outputFormats>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
     </profile>
 
     <profile>
@@ -79,21 +142,10 @@
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-gpg-plugin</artifactId>
           </plugin>
-          <plugin>
-            <groupId>org.sonatype.plugins</groupId>
-            <artifactId>nexus-staging-maven-plugin</artifactId>
-          </plugin>
         </plugins>
       </build>
     </profile>
   </profiles>
-
-  <distributionManagement>
-    <snapshotRepository>
-      <id>ossrh</id>
-      <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-    </snapshotRepository>
-  </distributionManagement>
 
   <build>
     <pluginManagement>
@@ -126,57 +178,19 @@
           </dependencies>
         </plugin>
         <plugin>
-          <groupId>org.sonatype.plugins</groupId>
-          <artifactId>nexus-staging-maven-plugin</artifactId>
-          <version>1.6.7</version>
-          <extensions>true</extensions>
-          <configuration>
-            <serverId>ossrh</serverId>
-            <nexusUrl>https://oss.sonatype.org/</nexusUrl>
-            <autoReleaseAfterClose>true</autoReleaseAfterClose>
-          </configuration>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-site-plugin</artifactId>
+          <version>4.0.0-M8</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-source-plugin</artifactId>
-          <version>2.2.1</version>
-          <executions>
-            <execution>
-              <id>attach-sources</id>
-              <goals>
-                <goal>jar-no-fork</goal>
-              </goals>
-            </execution>
-          </executions>
+          <artifactId>maven-project-info-reports-plugin</artifactId>
+          <version>3.4.5</version>
         </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-javadoc-plugin</artifactId>
-          <version>3.5.0</version>
-          <configuration>
-            <detectLinks />
-            <detectJavaApiLinks />
-          </configuration>
-          <executions>
-            <execution>
-              <id>build-javadocs</id>
-              <phase>package</phase>
-              <goals>
-                <goal>javadoc</goal>
-              </goals>
-            </execution>
-            <execution>
-              <id>attach-javadocs</id>
-              <goals>
-                <goal>jar</goal>
-              </goals>
-            </execution>
-          </executions>
-        </plugin>
-        <plugin>
+	<plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-gpg-plugin</artifactId>
-          <version>1.6</version>
+          <version>${maven-gpg-plugin.version}</version>
           <configuration>
             <gpgArguments>
               <arg>--batch</arg>
@@ -190,11 +204,11 @@
               <id>sign-artifacts</id>
               <phase>verify</phase>
               <goals>
-                <goal>sign</goal>
+		<goal>sign</goal>
               </goals>
             </execution>
           </executions>
-        </plugin>
+	</plugin>
       </plugins>
     </pluginManagement>
 
@@ -205,6 +219,73 @@
         <configuration>
           <workingDirectory>${project.build.directory}/test-run</workingDirectory>
         </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>${jacoco.version}</version>
+        <executions>
+          <execution>
+            <id>prepare-agent</id>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>report</id>
+            <phase>test</phase>
+            <goals>
+              <goal>report</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.sonatype.central</groupId>
+        <artifactId>central-publishing-maven-plugin</artifactId>
+        <version>${central-publishing-maven-plugin.version}</version>
+        <extensions>true</extensions>
+        <configuration>
+          <publishingServerId>central</publishingServerId>
+          <autoPublish>true</autoPublish>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-source-plugin</artifactId>
+        <version>${maven-source-plugin.version}</version>
+        <executions>
+          <execution>
+            <id>attach-sources</id>
+            <goals>
+              <goal>jar-no-fork</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <version>${maven-javadoc-plugin.version}</version>
+        <configuration>
+          <detectLinks />
+          <detectJavaApiLinks />
+        </configuration>
+        <executions>
+          <execution>
+            <id>build-javadocs</id>
+            <phase>package</phase>
+            <goals>
+              <goal>javadoc</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>attach-javadocs</id>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>
@@ -217,15 +298,6 @@
         <version>2.9</version>
         <configuration>
           <dependencyLocationsEnabled>false</dependencyLocationsEnabled>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>findbugs-maven-plugin</artifactId>
-        <version>3.0.4</version>
-        <configuration>
-          <xmlOutput>true</xmlOutput>
-          <xmlOutputDirectory>target/site</xmlOutputDirectory>
         </configuration>
       </plugin>
       <plugin>
@@ -244,7 +316,9 @@
           <targetJdk>1.8</targetJdk>
           <skipEmptyReport>false</skipEmptyReport>
           <rulesets>
-            <ruleset>http://artefacts.logicsquad.net.s3.amazonaws.com/logicsquad_pmd.xml</ruleset>
+            <!-- Path-style, region-specific URL: the virtual-host form does not work over
+                 HTTPS, because the dotted bucket name does not match S3's wildcard cert. -->
+            <ruleset>https://s3.ap-southeast-2.amazonaws.com/artefacts.logicsquad.net/logicsquad_pmd.xml</ruleset>
           </rulesets>
         </configuration>
       </plugin>
@@ -253,18 +327,36 @@
         <artifactId>maven-checkstyle-plugin</artifactId>
         <version>3.2.1</version>
         <configuration>
-          <configLocation>http://artefacts.logicsquad.net.s3.amazonaws.com/logicsquad_checks.xml</configLocation>
+          <!-- See the note on the PMD ruleset URL above. -->
+          <configLocation>https://s3.ap-southeast-2.amazonaws.com/artefacts.logicsquad.net/logicsquad_checks.xml</configLocation>
         </configuration>
       </plugin>
       <plugin>
         <groupId>com.github.spotbugs</groupId>
         <artifactId>spotbugs-maven-plugin</artifactId>
-        <version>3.1.12</version>
+        <version>${spotbugs.version}</version>
         <configuration>
           <effort>Max</effort>
           <threshold>Low</threshold>
           <maxHeap>2048</maxHeap>
+          <excludeFilterFile>${project.basedir}/src/config/spotbugs-exclude.xml</excludeFilterFile>
         </configuration>
+      </plugin>
+      <!-- Note when reading this report: instruction and line coverage are dominated by
+           ReedSolomonGenerator's precomputed lookup tables, which are ~300 lines of array
+           literals covered in full by a single loop. Branch coverage and the per-class
+           breakdown are the meaningful numbers. -->
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>${jacoco.version}</version>
+        <reportSets>
+          <reportSet>
+            <reports>
+              <report>report</report>
+            </reports>
+          </reportSet>
+        </reportSets>
       </plugin>
     </plugins>
   </reporting>
@@ -290,6 +382,14 @@
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-engine</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <!-- Test scope only: used as an independent oracle to decode the QR codes we
+         generate. Never appears on a consumer's classpath. -->
+    <dependency>
+      <groupId>com.google.zxing</groupId>
+      <artifactId>core</artifactId>
+      <version>3.5.3</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

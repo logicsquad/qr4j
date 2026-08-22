@@ -2,6 +2,7 @@
 .classpath
 .project
 .DS_Store
+.idea
 bin
 build
 target

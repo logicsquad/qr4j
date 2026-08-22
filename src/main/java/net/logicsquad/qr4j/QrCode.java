@@ -413,7 +413,8 @@ public final class QrCode {
 	private byte[] addEccAndInterleave(byte[] data) {
 		Objects.requireNonNull(data);
 		if (data.length != getNumDataCodewords(version, errorCorrectionLevel))
-			throw new IllegalArgumentException();
+			throw new IllegalArgumentException(String.format("Expected %d data codewords for version %d at level %s, but got %d",
+					getNumDataCodewords(version, errorCorrectionLevel), version, errorCorrectionLevel, data.length));
 		
 		// Calculate parameter numbers
 		int numBlocks = NUM_ERROR_CORRECTION_BLOCKS[errorCorrectionLevel.ordinal()][version];

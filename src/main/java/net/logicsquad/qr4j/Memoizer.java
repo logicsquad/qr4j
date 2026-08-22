@@ -46,6 +46,9 @@ final class Memoizer<T, R> {
 	 * 
 	 * @param index value of index type
 	 * @return computed result
+	 * @throws RuntimeException if the calling thread is interrupted while waiting for another thread to
+	 *                          finish computing the same index, wrapping the {@link InterruptedException}.
+	 *                          The thread's interrupt status is restored before the exception is thrown.
 	 */
 	public R get(T index) {
 		// Non-blocking fast path
@@ -76,6 +79,9 @@ final class Memoizer<T, R> {
 				try {
 					this.wait();
 				} catch (InterruptedException e) {
+					// wait() clears the interrupt status on the way out, and this method cannot propagate a
+					// checked exception, so restore it for callers upstream.
+					Thread.currentThread().interrupt();
 					throw new RuntimeException(e);
 				}
 			}

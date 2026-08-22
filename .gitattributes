@@ -1,0 +1,5 @@
+# Golden master fixtures are compared byte-for-byte against generated output, which
+# always uses Unix newlines regardless of platform. Never translate them on checkout:
+# a client that does (the default on Windows) would fail every comparison for reasons
+# unrelated to QR4J.
+src/test/resources/golden/** text eol=lf

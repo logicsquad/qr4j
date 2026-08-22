@@ -41,14 +41,8 @@ You can use QR4J in your projects by including it as a Maven dependency:
     <dependency>
       <groupId>net.logicsquad</groupId>
       <artifactId>qr4j</artifactId>
-      <version>1.0</version>
+      <version>1.1</version>
     </dependency>
-
-Roadmap
--------
-The following are some potential ideas for future releases:
-
-1. It would certainly be great to have more unit tests.
 
 Contributing
 ------------
