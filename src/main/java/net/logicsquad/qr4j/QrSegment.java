@@ -138,10 +138,35 @@ public final class QrSegment {
 	 * Describes how a segment's data bits are interpreted.
 	 */
 	public enum Mode {
+		/**
+		 * The digits {@code 0} to {@code 9}, packed three characters into every ten bits. The most compact of the
+		 * modes, and applicable to the least data.
+		 */
 		NUMERIC(0x1, 10, 12, 14),
+
+		/**
+		 * The 45 characters {@code 0}–{@code 9}, {@code A}–{@code Z} (uppercase only), space, and
+		 * {@code $%*+-./:}, packed two characters into every eleven bits.
+		 */
 		ALPHANUMERIC(0x2, 9, 11, 13),
+
+		/**
+		 * Arbitrary 8-bit bytes, one byte per eight bits. Any text can be encoded this way by taking its UTF-8
+		 * bytes, so this mode always applies, at the cost of being the least compact for data the other modes
+		 * can represent.
+		 */
 		BYTE(0x4, 8, 16, 16),
+
+		/**
+		 * Characters from the Shift JIS double-byte range, at thirteen bits each. Note that this is a smaller set
+		 * than "Japanese text": see {@link Utility#isEncodableAsKanji(String)}.
+		 */
 		KANJI(0x8, 8, 10, 12),
+
+		/**
+		 * Extended Channel Interpretation. Carries a character set assignment rather than character data, and so
+		 * has no character count of its own.
+		 */
 		ECI(0x7, 0, 0, 0);
 
 		/**
