@@ -3,7 +3,7 @@
 This project adheres to [Semantic
 Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Release 1.1
+## Release 1.1 (2026-08-22)
 ### Added
 - Improved unit test coverage from 69 → 91%. #5
 - Added tests for concurrent encoding. #8
